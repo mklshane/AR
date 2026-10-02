@@ -104,12 +104,33 @@ Encode for phones as H.264 MP4, 720p or less, around 2–4 Mbps, with `+faststar
 
 ## Tracking stability
 
-`src/ar/PoseFilter.ts` replaces MindAR's smoothing, which filtered each matrix element separately and made lifted content swing and shear. It filters position, rotation and scale separately. It smooths rotation hardest, because tilt noise is what makes lifted content wobble, and interpolates between tracker samples at render rate.
+`src/ar/PoseFilter.ts` replaces MindAR's smoothing, which filtered each matrix element separately and made lifted content swing and shear. It splits each tracker sample into sideways position, depth and rotation, and learns each channel's noise level live. Then:
 
-- Tune it live with `?pf=minCutoff,beta,rotMinCutoff,rotBeta` (default `0.5,0.5,0.2,0.1`). Lower values are steadier but lag more. Compare against the old filter with `?rawpose`.
-- `?fakecam=noisy` and `?fakecam=rough` simulate a small, noisy, moving target for testing.
-- Content far above the page (`lift`) magnifies any tracking error, so keep important content close to the page.
-- Physical setup matters more than any filter. The poster should fill most of the frame, the lighting should be even, and print beats a screen (screens add glare, moiré and refresh flicker).
+- **Held still:** heavy smoothing, so content stays put.
+- **Moving:** smoothing loosens as the raw pose moves faster than its noise, so there's no lag and no stutter.
+- **Jolt:** a jump far beyond the noise, seen on two samples in a row, snaps the content back into place. One-sample glitches are ignored.
+
+### Field-testing switches (work on the deployed site)
+
+| Query | Effect |
+| --- | --- |
+| `?hud` | Live readout: camera resolution, render fps, tracker Hz, learned noise per channel |
+| `?res=1080` | Ask for a 1080p camera (default 720p). More pixels on the poster means less tracking noise, at some CPU cost |
+| `?pf=0.4,30,2,3,12` | Filter tuning: `minCutoff,maxCutoff,beta,noiseSigma,motionSigma`. Lower `minCutoff` is steadier when still; higher `beta` follows movement more closely |
+| `?rawpose` | MindAR's original filter, for comparison |
+
+These combine, e.g. `/?hud&res=1080`.
+
+### Benchmarks (dev only)
+
+The fake camera knows exactly where it drew the poster, so filters can be scored against ground truth: `?fakecam=noisy` (small and grainy, held still), `rough` (moving, small, blurred) and `jolt` (still, but jumps every 2.5 s). With the defaults, content catches up after a jolt in ~130–150 ms, roughly the raw tracker's own processing latency. MindAR's filter takes ~300 ms.
+
+### Physical setup matters most
+
+- Fill most of the frame with the poster. A thumbnail on a laptop screen is near the tracker's minimum size and is very noisy. Below about a quarter of the frame height, MindAR can't detect it at all.
+- Printed posters beat screens, which add glare, moiré and refresh flicker. Use even, bright light.
+- Content high above the page (`lift`) magnifies any tilt error, so keep important content close to the page.
+- Compile targets from the highest-resolution artwork you have. The tracker can only follow detail that's in the target image.
 
 ## Blender → GLB
 
@@ -138,4 +159,5 @@ All of these serve HTTPS, which the camera requires. Put a QR code that links to
 - The landing page is about 70 KB gzipped. Three.js (~165 KB gz) and MindAR + TensorFlow.js (~280 KB gz) download only after START AR.
 - Content builds on first detection. Crop textures are capped at 512px and pixel ratio at 2. Mostly unlit materials, no shadows.
 - Everything (textures, geometry, mixers, camera tracks) is disposed when AR closes.
-- If tracking jitters, tune `filterMinCF` / `filterBeta` in `ARManager.start()`: lower values are smoother but laggier.
+- Loading: while the landing page is showing, the AR view, engine and targets prefetch in idle time (skipped when Data Saver is on). Tapping START AR goes to a live camera in ~0.5 s and ready-to-scan in ~1 s, measured on a throttled CPU at 4 Mbps (previously ~3.2 s). Each page's content builds in idle time once scanning starts, so a page appears instantly the first time it's found. Set `prefetch: false` on targets with large videos or models so they download only when scanned.
+- Many posters: the `.mind` file grows by roughly 400 KB (brotli) per poster at 736×920, and detection checks every target in the file. Keep a single file to roughly 10–20 posters. For a bigger magazine, split it into issues or sections, each with its own `experience` config and `.mind` file, served at its own URL.

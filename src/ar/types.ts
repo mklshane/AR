@@ -124,6 +124,11 @@ export interface TargetConfig {
   /** Pixel size of `image`. */
   size: [width: number, height: number]
   content: ContentItem[]
+  /**
+   * Build this page's content in the background after scanning starts (default true). Set false for
+   * pages with large videos/models so they only download when that page is actually scanned.
+   */
+  prefetch?: boolean
   /** Burst of particles where the user taps. */
   tapBurst?: { colors: string[] }
 }

@@ -1,16 +1,17 @@
 @import 'tailwindcss';
 
 @theme {
-  --font-display: 'Fraunces', Georgia, serif;
+  --font-script: 'Yesteryear', cursive;
+  --font-display: 'Young Serif', Georgia, serif;
   --font-sans: 'DM Sans', system-ui, sans-serif;
-  --color-sky: #7fb2dd;
-  --color-sky-deep: #4f86b8;
-  --color-pink: #f2b8c6;
-  --color-rose: #ee9fb4;
-  --color-navy: #1f3b5c;
-  --color-ink: #0b1422;
-  --color-cream: #fdf3e7;
-  --color-scan: #4ff5b0;
+  --color-paper: #f6ead3;
+  --color-banig: #d9a55b;
+  --color-sea: #2f8f9d;
+  --color-leaf: #2f6b3a;
+  --color-mango: #f2b632;
+  --color-sili: #d8452b;
+  --color-gumamela: #e8578a;
+  --color-kape: #3a2418;
 }
 
 html,
@@ -18,8 +19,8 @@ body,
 #root {
   height: 100%;
   margin: 0;
-  background: var(--color-ink);
-  color: var(--color-cream);
+  background: var(--color-kape);
+  color: var(--color-paper);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
@@ -38,19 +39,28 @@ body,
   touch-action: none;
 }
 
-.halftone {
-  background-image: radial-gradient(rgb(255 255 255 / 0.35) 1.2px, transparent 1.4px);
-  background-size: 9px 9px;
+/* Woven straw mat, after the banig weave: two crossing strand directions over a straw base. */
+.banig {
+  background-color: var(--color-banig);
+  background-image:
+    repeating-linear-gradient(45deg, rgb(120 72 24 / 0.22) 0 5px, transparent 5px 10px),
+    repeating-linear-gradient(-45deg, rgb(255 236 196 / 0.28) 0 5px, transparent 5px 10px);
+}
+
+/* Banderitas: a string of paper flags, tiled across the top of the page. */
+.bunting {
+  height: 38px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='190' height='38'%3E%3Cpath d='M0 4 Q95 12 190 4' fill='none' stroke='%233a2418' stroke-width='1.2'/%3E%3Cpath d='M4 5 L34 7 L18 34Z' fill='%23d8452b'/%3E%3Cpath d='M42 7.5 L72 9 L58 35Z' fill='%23f2b632'/%3E%3Cpath d='M80 9 L110 9 L94 36Z' fill='%232f8f9d'/%3E%3Cpath d='M118 9 L148 7.5 L131 35Z' fill='%23e8578a'/%3E%3Cpath d='M156 7 L186 5 L171 33Z' fill='%232f6b3a'/%3E%3C/svg%3E") repeat-x left top / 190px 38px;
 }
 
 @keyframes scan-sweep {
   0% { transform: translateY(0); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
   100% { transform: translateY(var(--sweep)); opacity: 0; }
 }
 .scan-line {
-  animation: scan-sweep 2.2s ease-in-out infinite;
+  animation: scan-sweep 3s ease-in-out infinite;
 }
 
 @keyframes pop-in {
@@ -61,14 +71,59 @@ body,
   animation: pop-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0) rotate(var(--r, -4deg)); }
-  50% { transform: translateY(-10px) rotate(calc(var(--r, -4deg) + 2deg)); }
+/* Scene motion: leaves sway from their base, sun rays turn, smoke drifts. */
+@keyframes sway {
+  0%, 100% { transform: rotate(-1.5deg); }
+  50% { transform: rotate(2deg); }
 }
-.float {
-  animation: float 5s ease-in-out infinite;
+.sway {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: sway 6s ease-in-out infinite;
+}
+@keyframes turn {
+  to { transform: rotate(360deg); }
+}
+.turn {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: turn 60s linear infinite;
+}
+@keyframes drift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(6px); }
+}
+.drift {
+  animation: drift 9s ease-in-out infinite;
+}
+
+
+/* Loading sun spins at a speed you can see. */
+.sun-loading .turn {
+  animation-duration: 2.4s;
+}
+
+/* Background stencils move much less than the scene. */
+@keyframes sway-soft {
+  0%, 100% { transform: rotate(-1deg); }
+  50% { transform: rotate(1.5deg); }
+}
+.sway-soft {
+  transform-origin: 50% 90%;
+  animation: sway-soft 11s ease-in-out infinite;
+}
+
+/* Fine print grain over the paper, so flat colour doesn't look like a screen fill. */
+.paper-grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.3 0 0 0 0 0.15 0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .scan-line, .float, .pop-in { animation: none; }
+  .scan-line, .pop-in, .sway, .sway-soft, .turn, .drift { animation: none; }
 }

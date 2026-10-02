@@ -23,6 +23,7 @@ declare module 'mind-ar/dist/mindar-image.prod.js' {
     inputWidth: number
     inputHeight: number
     addImageTargets(url: string): Promise<{ dimensions: [number, number][] }>
+    addImageTargetsFromBuffer(buffer: ArrayBuffer): { dimensions: [number, number][] }
     dummyRun(input: HTMLVideoElement): Promise<void>
     processVideo(input: HTMLVideoElement): void
     stopProcessVideo(): void

@@ -14,7 +14,7 @@ interface Anchor {
   group: THREE.Group
   /** MindAR world matrix → our page space (origin at centre, 1 unit = page width). */
   postMatrix: THREE.Matrix4
-  /** Latest unfiltered pose from the tracker; smoothed into group.matrix every render frame. */
+  /** Latest unfiltered pose from the tracker; smoothed into group.matrix on each sample. */
   rawPose: THREE.Matrix4
   filter: PoseFilter | null
   scene?: TargetScene
@@ -94,7 +94,7 @@ export class TargetManager {
       if (!a.visible) a.filter?.reset()
       if (a.filter) {
         a.filter.push(a.rawPose, now)
-        a.filter.sample(now, a.group.matrix)
+        a.filter.sample(a.group.matrix)
       } else a.group.matrix.copy(a.rawPose)
       if (!a.visible) {
         a.visible = true
@@ -119,11 +119,33 @@ export class TargetManager {
     a.group.matrixWorldNeedsUpdate = true
   }
 
-  /** Lazy content build on first detection. */
+  /**
+   * Build every target's content in idle time, one target at a time, so a page appears instantly
+   * the first time it is found. Targets with `prefetch: false` (e.g. heavy video/GLB pages) are left
+   * to build on first detection.
+   */
+  prebuildWhenIdle() {
+    const queue = [...this.anchors.values()].filter((a) => a.config.prefetch !== false)
+    const next = () => {
+      const a = queue.shift()
+      if (!a) return
+      const run = () => {
+        this.ensureScene(a)
+        ;(a.building ?? Promise.resolve()).finally(next)
+      }
+      if ('requestIdleCallback' in window) requestIdleCallback(run, { timeout: 2000 })
+      else setTimeout(run, 200)
+    }
+    next()
+  }
+
+  /** Lazy content build (on idle prebuild or first detection, whichever comes first). */
   private ensureScene(a: Anchor) {
     if (a.scene || a.building) return
     const scene = new TargetScene(a.config)
+    const t0 = performance.now()
     a.building = scene.build(this.assets).then((failed) => {
+      console.info(`[ar] timing build ${a.config.id} ${Math.round(performance.now() - t0)}ms`)
       a.scene = scene
       a.group.add(scene.root)
       if (a.visible) scene.show()
@@ -134,11 +156,6 @@ export class TargetManager {
   tick(now: number, dt: number) {
     for (const a of this.anchors.values()) {
       if (!a.visible) continue
-      // Interpolating at render rate smooths the steps between ~15–30 Hz tracker updates.
-      if (a.filter) {
-        a.filter.sample(now, a.group.matrix)
-        a.group.matrixWorldNeedsUpdate = true
-      }
       a.scene?.update({ t: now - a.foundAt, dt, time: now })
     }
   }
@@ -165,7 +182,7 @@ export class TargetManager {
   debugPoses() {
     return [...this.anchors.values()]
       .filter((a) => a.visible)
-      .map((a) => ({ id: a.config.id, raw: a.rawPose.toArray(), shown: a.group.matrix.toArray() }))
+      .map((a) => ({ id: a.config.id, raw: a.rawPose.toArray(), shown: a.group.matrix.toArray(), noise: a.filter?.noise, samples: a.filter?.samples ?? 0 }))
   }
 
   get anyVisible() {

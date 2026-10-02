@@ -3,6 +3,7 @@ import type { Controller } from 'mind-ar/dist/mindar-image.prod.js'
 import { AssetManager } from './AssetManager'
 import { Emitter } from './Emitter'
 import type { PoseFilterOptions } from './PoseFilter'
+import { preloadEngine, preloadTargets } from './preload'
 import { TargetManager } from './TargetManager'
 import type { ExperienceConfig, TargetConfig } from './types'
 
@@ -29,6 +30,8 @@ export class ARError extends Error {
 
 interface AREvents extends Record<string, unknown> {
   status: ARStatus
+  /** Camera feed is visible; remaining loading can be shown as a light overlay. */
+  cameraReady: true
   loadingStep: string
   found: TargetConfig
   lost: TargetConfig
@@ -43,6 +46,8 @@ export interface AROptions {
   smoothing?: boolean
   /** Override PoseFilter tuning. */
   poseFilter?: Partial<PoseFilterOptions>
+  /** Requested camera height in pixels (720 default; 1080 gives the tracker more detail). */
+  cameraHeight?: number
 }
 
 /**
@@ -64,6 +69,7 @@ export class ARManager extends Emitter<AREvents> {
   private stopped = false
   private pendingCapture?: (blob: Blob | null) => void
   private smoothing: boolean
+  private cameraHeight: number
   status: ARStatus = 'idle'
 
   constructor(container: HTMLElement, config: ExperienceConfig, opts: AROptions = {}) {
@@ -82,6 +88,7 @@ export class ARManager extends Emitter<AREvents> {
       { debug: opts.debug, smoothing: opts.smoothing ?? true, poseFilter: opts.poseFilter },
     )
     this.smoothing = opts.smoothing ?? true
+    this.cameraHeight = opts.cameraHeight ?? 720
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x8fb3d9, 2.4))
     const sun = new THREE.DirectionalLight(0xffffff, 1.6)
     sun.position.set(-0.5, 1, 1.5)
@@ -92,13 +99,22 @@ export class ARManager extends Emitter<AREvents> {
     try {
       this.setStatus('loading')
       this.preflight()
+      // Kick off downloads now so they overlap the camera permission prompt (usually already
+      // cached from the landing page's idle preload).
+      const engineP = preloadEngine().catch(() => {
+        throw new ARError('engine-load')
+      })
+      const targetsP = preloadTargets(this.config.mindFile).catch(() => {
+        throw new ARError('target-load')
+      })
+      engineP.catch(() => undefined)
+      targetsP.catch(() => undefined)
       this.step('Starting camera…')
       await this.startVideo()
       if (this.stopped) return
+      this.emit('cameraReady', true)
       this.step('Loading AR engine…')
-      const { Controller } = await import('mind-ar/dist/mindar-image.prod.js').catch(() => {
-        throw new ARError('engine-load')
-      })
+      const { Controller } = await engineP
       if (this.stopped) return
       this.startRenderer()
       const video = this.video!
@@ -118,16 +134,20 @@ export class ARManager extends Emitter<AREvents> {
         },
       })
       this.step('Loading magazine pages…')
-      const { dimensions } = await this.controller.addImageTargets(this.config.mindFile).catch(() => {
-        throw new ARError('target-load')
-      })
+      const { dimensions } = this.controller.addImageTargetsFromBuffer(await targetsP)
       this.targets.register(this.config.targets, dimensions)
       this.resize()
       this.step('Warming up…')
+      // dummyRun compiles the tracker's GPU shaders synchronously (the slowest step on phones);
+      // give the browser two frames to paint the camera and this label first.
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+      if (this.stopped) return
       await this.controller.dummyRun(video)
       if (this.stopped) return
       this.controller.processVideo(video)
+      this.step('')
       this.setStatus('scanning')
+      this.targets.prebuildWhenIdle()
     } catch (e) {
       const err = toARError(e)
       console.error('[ar]', err, e)
@@ -154,7 +174,13 @@ export class ARManager extends Emitter<AREvents> {
 
   /** Dev/test hook used by the stability benchmark. */
   debugState() {
-    return { poses: this.targets.debugPoses(), projection: this.camera.projectionMatrix.toArray(), size: [this.container.clientWidth, this.container.clientHeight] }
+    return {
+      poses: this.targets.debugPoses(),
+      projection: this.camera.projectionMatrix.toArray(),
+      size: [this.container.clientWidth, this.container.clientHeight],
+      video: [this.video?.videoWidth ?? 0, this.video?.videoHeight ?? 0],
+      time: this.clock.elapsedTime,
+    }
   }
 
   /** Composite camera frame + AR layer into a JPEG (the "photo" button). */
@@ -184,7 +210,11 @@ export class ARManager extends Emitter<AREvents> {
     try {
       stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: {
+          facingMode: 'environment',
+          width: { ideal: Math.round((this.cameraHeight * 16) / 9) },
+          height: { ideal: this.cameraHeight },
+        },
       })
     } catch (e) {
       const name = (e as DOMException)?.name
@@ -298,8 +328,16 @@ export class ARManager extends Emitter<AREvents> {
     this.emit('status', s)
   }
 
+  private stepAt = performance.now()
+  private stepLabel = 'init'
+
+  /** Report a loading step to the UI, and log how long the previous step took. */
   private step(label: string) {
-    this.emit('loadingStep', label)
+    const now = performance.now()
+    console.info(`[ar] timing ${this.stepLabel} ${Math.round(now - this.stepAt)}ms`)
+    this.stepAt = now
+    this.stepLabel = label || 'done'
+    if (label) this.emit('loadingStep', label)
   }
 }
 
