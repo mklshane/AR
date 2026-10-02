@@ -39,7 +39,7 @@ export function Landing({ onStart, posterSrc }: Props) {
         >
           START AR
         </button>
-        <p className="mt-5 max-w-xs text-sm text-cream/75">No app required. Works directly in your browser.</p>
+        <p className="mt-5 max-w-xs text-sm text-cream/75"></p>
       </section>
 
       <footer className="relative z-10 px-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center text-xs text-cream/60">

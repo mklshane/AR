@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import type { AssetManager } from './AssetManager'
+import { DEFAULT_POSE_FILTER, PoseFilter, type PoseFilterOptions } from './PoseFilter'
 import type { TargetConfig } from './types'
 import { TargetScene } from '../scenes/TargetScene'
 
@@ -13,6 +14,9 @@ interface Anchor {
   group: THREE.Group
   /** MindAR world matrix → our page space (origin at centre, 1 unit = page width). */
   postMatrix: THREE.Matrix4
+  /** Latest unfiltered pose from the tracker; smoothed into group.matrix every render frame. */
+  rawPose: THREE.Matrix4
+  filter: PoseFilter | null
   scene?: TargetScene
   building?: Promise<void>
   visible: boolean
@@ -32,17 +36,21 @@ export class TargetManager {
   private assets: AssetManager
   private onEvent: <K extends keyof TargetEvents>(e: K, p: TargetEvents[K]) => void
   private debug: boolean
+  private smoothing: boolean
+  private poseFilter: PoseFilterOptions
 
   constructor(
     scene: THREE.Scene,
     assets: AssetManager,
     onEvent: <K extends keyof TargetEvents>(e: K, p: TargetEvents[K]) => void,
-    debug = false,
+    { debug = false, smoothing = true, poseFilter = {} as Partial<PoseFilterOptions> } = {},
   ) {
+    this.poseFilter = { ...DEFAULT_POSE_FILTER, ...poseFilter }
     this.scene = scene
     this.assets = assets
     this.onEvent = onEvent
     this.debug = debug
+    this.smoothing = smoothing
   }
 
   /** Register targets once the .mind file reports each target's pixel dimensions. */
@@ -64,7 +72,16 @@ export class TargetManager {
       group.visible = false
       if (this.debug) group.add(debugFrame(h / w))
       this.scene.add(group)
-      this.anchors.set(config.targetIndex, { config, group, postMatrix, visible: false, foundAt: 0, lostAt: -Infinity })
+      this.anchors.set(config.targetIndex, {
+        config,
+        group,
+        postMatrix,
+        rawPose: new THREE.Matrix4(),
+        filter: this.smoothing ? new PoseFilter(this.poseFilter) : null,
+        visible: false,
+        foundAt: 0,
+        lostAt: -Infinity,
+      })
     }
   }
 
@@ -73,7 +90,12 @@ export class TargetManager {
     const a = this.anchors.get(targetIndex)
     if (!a) return
     if (worldMatrix) {
-      a.group.matrix.fromArray(worldMatrix).multiply(a.postMatrix)
+      a.rawPose.fromArray(worldMatrix).multiply(a.postMatrix)
+      if (!a.visible) a.filter?.reset()
+      if (a.filter) {
+        a.filter.push(a.rawPose, now)
+        a.filter.sample(now, a.group.matrix)
+      } else a.group.matrix.copy(a.rawPose)
       if (!a.visible) {
         a.visible = true
         a.group.visible = true
@@ -111,7 +133,13 @@ export class TargetManager {
 
   tick(now: number, dt: number) {
     for (const a of this.anchors.values()) {
-      if (a.visible && a.scene) a.scene.update({ t: now - a.foundAt, dt, time: now })
+      if (!a.visible) continue
+      // Interpolating at render rate smooths the steps between ~15–30 Hz tracker updates.
+      if (a.filter) {
+        a.filter.sample(now, a.group.matrix)
+        a.group.matrixWorldNeedsUpdate = true
+      }
+      a.scene?.update({ t: now - a.foundAt, dt, time: now })
     }
   }
 
@@ -131,6 +159,13 @@ export class TargetManager {
       }
       a.scene.tap(hit, pagePoint)
     }
+  }
+
+  /** Dev/test hook: raw vs displayed pose of each visible target. */
+  debugPoses() {
+    return [...this.anchors.values()]
+      .filter((a) => a.visible)
+      .map((a) => ({ id: a.config.id, raw: a.rawPose.toArray(), shown: a.group.matrix.toArray() }))
   }
 
   get anyVisible() {

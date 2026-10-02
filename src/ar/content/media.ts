@@ -60,21 +60,30 @@ export async function buildImage(c: ImageContent, { page, assets }: BuildContext
 
 export async function buildVideo(c: VideoContent, { page }: BuildContext): Promise<ContentNode> {
   const video = document.createElement('video')
-  Object.assign(video, { src: c.src, loop: c.loop ?? true, muted: true, playsInline: true, crossOrigin: 'anonymous' })
+  // Muted + inline is what lets iOS Safari autoplay; the user taps the video to turn sound on.
+  Object.assign(video, { loop: c.loop ?? true, muted: true, playsInline: true, preload: 'auto', crossOrigin: 'anonymous' })
+  video.setAttribute('playsinline', '')
+  video.setAttribute('muted', '')
+  video.src = c.src
   await new Promise<void>((resolve, reject) => {
+    if (video.readyState >= 1) return resolve()
     video.onloadedmetadata = () => resolve()
     video.onerror = () => reject(new Error(`Could not load video ${c.src}`))
+    // iOS may not fetch metadata until playback is requested.
+    video.play().catch(() => undefined)
   })
   const map = new THREE.VideoTexture(video)
   map.colorSpace = THREE.SRGBColorSpace
   const w = page.len(c.width)
-  const node = floatingPlane(map, w, (w * video.videoHeight) / video.videoWidth, page.point(c.at), c.lift ?? 0.04, c.delay)
+  const node = floatingPlane(map, w, (w * video.videoHeight) / video.videoWidth, page.point(c.at), c.lift ?? 0.01, c.delay)
   return {
     ...node,
     onShow: () => void video.play().catch(() => undefined),
     onHide: () => video.pause(),
     onTap: () => {
+      // Taps are user gestures, so unmuting is allowed here even on iOS.
       video.muted = !video.muted
+      void video.play().catch(() => undefined)
     },
     dispose: () => {
       node.dispose()

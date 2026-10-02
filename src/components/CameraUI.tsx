@@ -10,10 +10,11 @@ import { ScanOverlay } from './ScanOverlay'
 interface Props {
   config: ExperienceConfig
   debug: boolean
+  smoothing: boolean
   onExit: () => void
 }
 
-export function CameraUI({ config, debug, onExit }: Props) {
+export function CameraUI({ config, debug, smoothing, onExit }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const managerRef = useRef<ARManager | null>(null)
   const [status, setStatus] = useState<ARStatus>('loading')
@@ -21,12 +22,16 @@ export function CameraUI({ config, debug, onExit }: Props) {
   const [error, setError] = useState<ARErrorCode | null>(null)
   const [everFound, setEverFound] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const [photo, setPhoto] = useState<Blob | null>(null)
+  const [photo, setPhoto] = useState<{ blob: Blob; url: string } | null>(null)
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
-    const ar = new ARManager(containerRef.current!, config, { debug })
+    // Dev tuning: ?pf=minCutoff,beta,rotMinCutoff,rotBeta
+    const pf = import.meta.env.DEV ? new URLSearchParams(location.search).get('pf')?.split(',').map(Number) : undefined
+    const poseFilter = pf ? { minCutoff: pf[0], beta: pf[1], rotMinCutoff: pf[2], rotBeta: pf[3] } : undefined
+    const ar = new ARManager(containerRef.current!, config, { debug, smoothing, poseFilter })
     managerRef.current = ar
+    if (import.meta.env.DEV) (window as unknown as { __ar?: ARManager }).__ar = ar
     const offs = [
       ar.on('status', setStatus),
       ar.on('loadingStep', setStep),
@@ -43,7 +48,7 @@ export function CameraUI({ config, debug, onExit }: Props) {
       ar.stop()
       managerRef.current = null
     }
-  }, [config, debug, attempt])
+  }, [config, debug, smoothing, attempt])
 
   useEffect(() => {
     if (!toast) return
@@ -53,7 +58,7 @@ export function CameraUI({ config, debug, onExit }: Props) {
 
   const capture = useCallback(async () => {
     const blob = await managerRef.current?.capture()
-    if (blob) setPhoto(blob)
+    if (blob) setPhoto({ blob, url: URL.createObjectURL(blob) })
   }, [])
 
   const retry = () => {
@@ -76,15 +81,19 @@ export function CameraUI({ config, debug, onExit }: Props) {
           {toast}
         </div>
       )}
-      {status === 'tracking' && (
-        <p className="pointer-events-none absolute inset-x-0 bottom-[calc(max(1.75rem,env(safe-area-inset-bottom))+88px)] z-10 text-center text-xs text-cream/80 [text-shadow:0_1px_4px_rgb(0_0_0/0.7)]">
-          Tap the stickers ✦
-        </p>
-      )}
 
       <ARControls onClose={onExit} onCapture={ready ? capture : undefined} />
       {error && <ErrorScreen code={error} onRetry={retry} onBack={onExit} />}
-      {photo && <PhotoSheet blob={photo} onClose={() => setPhoto(null)} />}
+      {photo && (
+        <PhotoSheet
+          blob={photo.blob}
+          url={photo.url}
+          onClose={() => {
+            URL.revokeObjectURL(photo.url)
+            setPhoto(null)
+          }}
+        />
+      )}
     </div>
   )
 }

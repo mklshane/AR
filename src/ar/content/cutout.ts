@@ -13,9 +13,9 @@ export async function buildCutout(c: CutoutContent, ctx: BuildContext): Promise<
   const w = page.len(x1 - x0)
   const h = page.len(y1 - y0)
   const [x, y] = page.point(c.at)
-  const lift = c.lift ?? 0.08
-  const bob = c.bob ?? 0.008
-  const wobble = THREE.MathUtils.degToRad(c.wobble ?? 2)
+  const lift = c.lift ?? 0.05
+  const bob = c.bob ?? 0.004
+  const wobble = THREE.MathUtils.degToRad(c.wobble ?? 1)
   const phase = Math.random() * Math.PI * 2
   const hop = new Pulse(0.7)
   let now = 0
@@ -55,7 +55,6 @@ export async function buildCutout(c: CutoutContent, ctx: BuildContext): Promise<
       const z = lift * easeOutBack(p) + Math.sin(time * 1.6 + phase) * bob * p + Math.sin(hp * Math.PI) * lift
       sticker.position.z = Math.max(0.001, z)
       sticker.rotation.z = Math.sin(time * 1.1 + phase) * wobble * p + (hp ? easeOutBack(hp) * Math.PI * 2 : 0)
-      sticker.rotation.x = Math.sin(time * 0.8 + phase) * wobble * 0.5 * p
       sticker.scale.setScalar(1 + 0.04 * p)
       // Shadow slides away from a light up-left and fades in as the sticker rises.
       shadow.position.set(z * 0.35, -z * 0.45, 0.0005)

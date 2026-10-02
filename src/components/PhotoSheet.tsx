@@ -1,13 +1,13 @@
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 
 interface Props {
   blob: Blob
+  /** Object URL for `blob`; the owner revokes it on close. */
+  url: string
   onClose: () => void
 }
 
-export function PhotoSheet({ blob, onClose }: Props) {
-  const url = useMemo(() => URL.createObjectURL(blob), [blob])
-  useEffect(() => () => URL.revokeObjectURL(url), [url])
+export function PhotoSheet({ blob, url, onClose }: Props) {
   const file = useMemo(() => new File([blob], 'ar-magazine.jpg', { type: 'image/jpeg' }), [blob])
   const canShare = typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })
 

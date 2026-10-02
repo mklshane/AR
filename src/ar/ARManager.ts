@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import type { Controller } from 'mind-ar/dist/mindar-image.prod.js'
 import { AssetManager } from './AssetManager'
 import { Emitter } from './Emitter'
+import type { PoseFilterOptions } from './PoseFilter'
 import { TargetManager } from './TargetManager'
 import type { ExperienceConfig, TargetConfig } from './types'
 
@@ -38,6 +39,10 @@ interface AREvents extends Record<string, unknown> {
 export interface AROptions {
   /** Show the page outline, axes and a test cube on every target. */
   debug?: boolean
+  /** Our decomposed pose filter (default). false = MindAR's per-element filter, for A/B testing. */
+  smoothing?: boolean
+  /** Override PoseFilter tuning. */
+  poseFilter?: Partial<PoseFilterOptions>
 }
 
 /**
@@ -58,6 +63,7 @@ export class ARManager extends Emitter<AREvents> {
   private raycaster = new THREE.Raycaster()
   private stopped = false
   private pendingCapture?: (blob: Blob | null) => void
+  private smoothing: boolean
   status: ARStatus = 'idle'
 
   constructor(container: HTMLElement, config: ExperienceConfig, opts: AROptions = {}) {
@@ -73,8 +79,9 @@ export class ARManager extends Emitter<AREvents> {
         if (event === 'contentError' && 'ids' in payload) this.emit('contentError', payload.ids)
         this.setStatus(this.targets.anyVisible ? 'tracking' : 'scanning')
       },
-      opts.debug,
+      { debug: opts.debug, smoothing: opts.smoothing ?? true, poseFilter: opts.poseFilter },
     )
+    this.smoothing = opts.smoothing ?? true
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x8fb3d9, 2.4))
     const sun = new THREE.DirectionalLight(0xffffff, 1.6)
     sun.position.set(-0.5, 1, 1.5)
@@ -99,9 +106,9 @@ export class ARManager extends Emitter<AREvents> {
         inputWidth: video.videoWidth,
         inputHeight: video.videoHeight,
         maxTrack: 1,
-        // Defaults tuned a little smoother than MindAR's for handheld magazines.
-        filterMinCF: 0.0005,
-        filterBeta: 0.001,
+        // With our PoseFilter on, MindAR's own filter is bypassed (a very high cutoff ≈ passthrough).
+        filterMinCF: this.smoothing ? 1e9 : 0.0005,
+        filterBeta: this.smoothing ? 0 : 0.001,
         warmupTolerance: 3,
         missTolerance: 5,
         onUpdate: (data) => {
@@ -143,6 +150,11 @@ export class ARManager extends Emitter<AREvents> {
     this.renderer?.domElement.remove()
     window.removeEventListener('resize', this.onResize)
     this.container.removeEventListener('pointerup', this.onTap)
+  }
+
+  /** Dev/test hook used by the stability benchmark. */
+  debugState() {
+    return { poses: this.targets.debugPoses(), projection: this.camera.projectionMatrix.toArray(), size: [this.container.clientWidth, this.container.clientHeight] }
   }
 
   /** Composite camera frame + AR layer into a JPEG (the "photo" button). */
