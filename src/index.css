@@ -1,0 +1,74 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --color-sky: #7fb2dd;
+  --color-sky-deep: #4f86b8;
+  --color-pink: #f2b8c6;
+  --color-rose: #ee9fb4;
+  --color-navy: #1f3b5c;
+  --color-ink: #0b1422;
+  --color-cream: #fdf3e7;
+  --color-scan: #4ff5b0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--color-ink);
+  color: var(--color-cream);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* Camera feed + WebGL layer, positioned by ARManager.resize(). */
+.ar-video {
+  position: absolute;
+  max-width: none; /* Tailwind preflight caps media at 100%, which breaks the cover crop */
+  z-index: 0;
+}
+.ar-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  touch-action: none;
+}
+
+.halftone {
+  background-image: radial-gradient(rgb(255 255 255 / 0.35) 1.2px, transparent 1.4px);
+  background-size: 9px 9px;
+}
+
+@keyframes scan-sweep {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(var(--sweep)); opacity: 0; }
+}
+.scan-line {
+  animation: scan-sweep 2.2s ease-in-out infinite;
+}
+
+@keyframes pop-in {
+  0% { transform: translateY(8px) scale(0.92); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+.pop-in {
+  animation: pop-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(var(--r, -4deg)); }
+  50% { transform: translateY(-10px) rotate(calc(var(--r, -4deg) + 2deg)); }
+}
+.float {
+  animation: float 5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-line, .float, .pop-in { animation: none; }
+}

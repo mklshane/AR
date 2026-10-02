@@ -1,0 +1,6 @@
+{
+  "name": "canvas",
+  "version": "2.11.2",
+  "description": "Stub: mind-ar lists node-canvas for Node-side compiling only; this app compiles targets in the browser.",
+  "main": "index.js"
+}
