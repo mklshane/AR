@@ -126,8 +126,8 @@ export interface TubContent extends Placed {
   type: 'tub'
   /** The tub GLB (with nodes box_mesh, Empty.001 lid, Sphere.00x scoops, Medeka fish). */
   asset: string
-  /** The tub's width on the page, in target-image pixels. */
-  width: number
+  /** The tub's length on the page (it lies lengthways, top to bottom), in target-image pixels. */
+  length: number
 }
 
 /**

@@ -158,7 +158,8 @@ const page34: TargetConfig = {
   image: '/magazine/p34.webp',
   size: [1080, 1485],
   prefetch: false,
-  content: [{ type: 'tub', id: 'ice-cream-tub', asset: '/models/ice-cream-tub.glb', at: [528, 800], width: 520 }],
+  // Centred on the printed tray (495 × 745 px), long enough to cover it.
+  content: [{ type: 'tub', id: 'ice-cream-tub', asset: '/models/ice-cream-tub.glb', at: [518, 802], length: 680 }],
 }
 
 export const experience: ExperienceConfig = {

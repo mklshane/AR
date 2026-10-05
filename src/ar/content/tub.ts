@@ -4,7 +4,7 @@ import type { TubContent } from '../types'
 import { type BuildContext, type ContentNode, Pulse, clamp01, disposeObject, easeOutBack, intro } from './ContentNode'
 
 /**
- * p34 "The Ice Cream is Gone": the Selecta tub lying on the printed tray. Tap it and the lid comes off
+ * p34 "The Ice Cream is Gone": the Selecta tub lying lengthways on the printed (portrait) tray. Tap it and the lid comes off
  * and is set down beside it, the three scoops pop up and vanish, and a fish is left flopping inside.
  * Tap the fish to make it flop again; tap the tub to put everything back.
  *
@@ -46,15 +46,21 @@ export async function buildTub(c: TubContent, { page, assets, view }: BuildConte
   const model = cloneSkinned(gltf.scene)
   model.updateMatrixWorld(true)
 
-  // Lit like a product shot: soft studio reflections on the plastic and ice cream.
+  // Soft studio reflections, but toned down (darker, a little desaturated) to sit with a phone camera's
+  // flatter, dimmer picture rather than glowing like a render.
   const env = view.environment()
+  const hsl = { h: 0, s: 0, l: 0 }
   model.traverse((o) => {
     const mesh = o as THREE.Mesh
     if (!mesh.isMesh) return
     for (const m of [mesh.material].flat() as THREE.MeshStandardMaterial[]) {
       if (!m.isMeshStandardMaterial) continue
       m.envMap = env
-      m.envMapIntensity = 0.7
+      m.envMapIntensity = 0.35
+      m.color.getHSL(hsl)
+      m.color.setHSL(hsl.h, hsl.s * 0.8, hsl.l * 0.82)
+      // Textured colours can't be desaturated per pixel here, so damp them a little more.
+      if (m.map) m.color.multiplyScalar(0.9)
       // The fish was exported as a perfect mirror; give it a wet sheen instead.
       if (m.name === 'Medeka fish') m.roughness = 0.35
     }
@@ -84,25 +90,30 @@ export async function buildTub(c: TubContent, { page, assets, view }: BuildConte
   const group = new THREE.Group()
   const [x, y] = page.point(c.at)
   group.position.set(x, y, c.lift ?? 0)
-  const k = page.len(c.width) / tubSize.x // model units → anchor units
-  group.add(model)
+  // Turned a quarter anticlockwise so its length runs up the page like the tray, with the fish's head
+  // at the top like the printed ones. In this turned space, model −y points to the page's right.
+  const turn = new THREE.Group()
+  turn.rotation.z = Math.PI / 2
+  turn.add(model)
+  group.add(turn)
+  const k = page.len(c.length) / tubSize.x // model units → anchor units
 
   // Soft contact shadows: one under the tub, one under the lid once it's set down.
   const shadowMap = shadowTexture()
   const shadowMat = () => new THREE.MeshBasicMaterial({ map: shadowMap, transparent: true, depthWrite: false, toneMapped: false })
   const tubShadow = new THREE.Mesh(new THREE.PlaneGeometry(tubSize.x * 1.25, tubSize.y * 1.3), shadowMat())
-  tubShadow.position.set(0, -tubSize.y * 0.04, 0.002)
+  tubShadow.position.set(-tubSize.x * 0.03, -tubSize.y * 0.03, 0.002) // light from the page's top-left
   const lidShadow = new THREE.Mesh(new THREE.PlaneGeometry(tubSize.x * 1.2, tubSize.y * 1.25), shadowMat())
   lidShadow.position.z = 0.002
-  group.add(tubShadow, lidShadow)
+  turn.add(tubShadow, lidShadow)
 
   // Rest poses, so every frame is computed from scratch (and reversing needs no bookkeeping).
   const rest = new Map<THREE.Object3D, { p: THREE.Vector3; q: THREE.Quaternion; s: THREE.Vector3 }>()
   for (const o of [lid, fish, ...scoops, ...bones]) rest.set(o, { p: o.position.clone(), q: o.quaternion.clone(), s: o.scale.clone() })
   const restOf = (o: THREE.Object3D) => rest.get(o)!
 
-  // Lid: lifts, tips, swings out to the right and settles flat on the page beside the tub.
-  const lidAside = new THREE.Vector3(tubSize.x * 1.04, -tubSize.y * 0.08, -(lidBox.min.z - tubBox.min.z) + 0.02)
+  // Lid: lifts, tips, swings out to the page's right (model −y) and settles flat on the page beside the tub.
+  const lidAside = new THREE.Vector3(-tubSize.x * 0.06, -tubSize.y * 1.04, -(lidBox.min.z - tubBox.min.z) + 0.02)
   const tip = new THREE.Quaternion()
   const Z = new THREE.Vector3(0, 0, 1)
   const Y = new THREE.Vector3(0, 1, 0)
@@ -113,24 +124,24 @@ export async function buildTub(c: TubContent, { page, assets, view }: BuildConte
     const arc = Math.sin(Math.PI * u) * tubSize.z * 0.9 // up and over, not through the rim
     lid.position.copy(r.p).addScaledVector(lidAside, e)
     lid.position.z += arc + hop * tubSize.z * 0.12
-    tip.setFromAxisAngle(Y, Math.sin(Math.PI * u) * 0.45 + hop * 0.04)
+    tip.setFromAxisAngle(X, -Math.sin(Math.PI * u) * 0.45 - hop * 0.04)
     lid.quaternion.copy(tip).multiply(r.q)
     const shadowOn = smooth(clamp01((u - 0.55) / 0.45))
-    lidShadow.position.x = r.p.x - tubCentre.x + lidAside.x * e
-    lidShadow.position.y = r.p.y - tubCentre.y + lidAside.y * e - tubSize.y * 0.04
+    lidShadow.position.x = r.p.x - tubCentre.x + lidAside.x * e - tubSize.x * 0.03
+    lidShadow.position.y = r.p.y - tubCentre.y + lidAside.y * e - tubSize.y * 0.03
     ;(lidShadow.material as THREE.MeshBasicMaterial).opacity = shadowOn * 0.8
     lidShadow.visible = shadowOn > 0.01
   }
 
-  // Scoops: pop straight up towards the phone, tumbling, and shrink away to nothing.
+  // Scoops: pop up towards the phone, fanning out a little sideways (model ±y), tumbling, and shrink away.
   const spin = new THREE.Quaternion()
   function placeScoop(o: THREE.Object3D, i: number, u: number) {
     const r = restOf(o)
     const pop = smooth(u)
     o.visible = u < 0.999
     o.position.copy(r.p)
-    o.position.x += (i - 1) * tubSize.x * 0.35 * pop
-    o.position.y += tubSize.y * 0.15 * pop
+    o.position.x += (1 - i) * tubSize.x * 0.08 * pop
+    o.position.y += (i - 1 || 0.6) * tubSize.y * 0.3 * pop
     o.position.z += tubSize.x * 1.1 * pop + Math.sin(Math.PI * u) * tubSize.z * 0.6
     spin.setFromAxisAngle(i === 1 ? X : Z, (i - 1 || 1) * pop * Math.PI * 1.5)
     o.quaternion.copy(spin).multiply(r.q)
