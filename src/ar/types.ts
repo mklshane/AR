@@ -95,6 +95,20 @@ export interface ModelContent extends Placed {
   animation?: string
 }
 
+/**
+ * An animation rebuilt from a designer's reference render (see scripts/extract-page13.py): a short
+ * take-off clip with its own alpha, then rigid sprites replaying measured per-frame poses. Positions
+ * come from the timeline file, already registered to the page.
+ */
+export interface TimelineContent {
+  type: 'timeline'
+  id: string
+  /** URL of the timeline JSON written by the extraction script. */
+  src: string
+  /** Resting height per layer id once it has landed (fraction of page width). Defaults by kind. */
+  lift?: Record<string, number>
+}
+
 export interface AudioContent {
   type: 'audio'
   id: string
@@ -112,6 +126,7 @@ export type ContentItem =
   | ImageContent
   | VideoContent
   | ModelContent
+  | TimelineContent
   | AudioContent
 
 export interface TargetConfig {
