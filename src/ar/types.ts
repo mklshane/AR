@@ -113,12 +113,22 @@ export interface ModelContent extends Placed {
   type: 'model'
   /** GLB/glTF URL — exported from Blender as glTF Binary. */
   asset: string
-  /** Uniform scale applied after the model is normalised to the page width. */
+  /** Largest side in page widths (used when `width` isn't given). */
   scale: number
-  /** Euler rotation in degrees. */
+  /** Overall width in target-image pixels (overrides `scale`). */
+  width?: number
+  /** Degrees from the page: 90 stands it straight up (default), less leans it back towards the page. */
+  stand?: number
+  /** Node whose base sits on `at` (e.g. the product, over its printed twin). Default: the whole model. */
+  anchor?: string
+  /** Node names to hide (e.g. leftovers from another scene). */
+  hide?: string[]
+  /** Extra Euler rotation in degrees. */
   rotation?: [number, number, number]
-  /** Animation clip name to loop. Omit to play the first clip (if any). */
+  /** Only this clip. Omit to play them all: ≤ 3 s ones once (intros), longer ones on a loop. */
   animation?: string
+  /** Playback speed (1 = as exported). */
+  speed?: number
 }
 
 /** One cut-out garment of a paper doll. Positions are target-image pixels (centres). */

@@ -1,7 +1,10 @@
 /**
  * Tiny synthesised UI sounds (no audio files): a paper rustle, a snap and a swish, plus a short buzz on
- * phones that support it (Android; iOS Safari has no vibration API). The AudioContext is made on first
- * use, which must be inside a touch handler for iOS to let it play.
+ * phones that support it (Android; iOS Safari has no vibration API).
+ *
+ * iOS: Web Audio only starts from a tap (a finger *lift*, not a press), so call unlockSfx() in the
+ * "Open camera" tap. And it is muted by the silent switch unless the page's audio session is
+ * 'playback' (Safari 17+), the same category video sound uses.
  */
 
 let ctx: AudioContext | null = null
@@ -9,6 +12,8 @@ let noise: AudioBuffer | null = null
 
 function audio(): AudioContext | null {
   if (!ctx) {
+    const session = (navigator as unknown as { audioSession?: { type: string } }).audioSession
+    if (session) session.type = 'playback'
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     if (!AC) return null
     ctx = new AC()
@@ -50,6 +55,16 @@ function blip(a: AudioContext, at: number, dur: number, from: number, to: number
   osc.connect(g).connect(a.destination)
   osc.start(at)
   osc.stop(at + dur + 0.02)
+}
+
+/** Call inside a tap: makes and starts the AudioContext with one silent sample, so later sounds play. */
+export function unlockSfx() {
+  const a = audio()
+  if (!a) return
+  const src = a.createBufferSource()
+  src.buffer = a.createBuffer(1, 1, a.sampleRate)
+  src.connect(a.destination)
+  src.start()
 }
 
 const buzz = (ms: number | number[]) => navigator.vibrate?.(ms)

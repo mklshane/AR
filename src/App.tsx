@@ -3,6 +3,7 @@ import { Landing } from './components/Landing'
 import { LoadingScreen } from './components/LoadingScreen'
 import { preloadWhenIdle } from './ar/preload'
 import { unlockMedia } from './ar/mediaUnlock'
+import { unlockSfx } from './ar/sfx'
 import { experience } from './data/targets'
 
 // Three.js + MindAR stay out of the landing bundle; they're prefetched in idle time instead.
@@ -31,8 +32,10 @@ export default function App() {
   }, [])
   const toLanding = () => setView('landing')
   const openCamera = () => {
-    // Runs inside the "Open camera" tap: the only moment iOS lets us unlock video sound for later.
+    // Runs inside the "Open camera" tap: the only moment iOS lets us unlock video sound (and the
+    // paper doll's sound effects) for later.
     unlockMedia()
+    unlockSfx()
     setView('ar')
   }
   if (view === 'landing') return <Landing onStart={openCamera} onRead={() => setView('magazine')} />

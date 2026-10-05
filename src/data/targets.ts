@@ -190,7 +190,55 @@ const page39: TargetConfig = {
   ],
 }
 
+/** p40 "MAGWAI wants your beach bag…": the reef-safe sunscreen rising out of a watercolour reef, on its printed tube. */
+const page40: TargetConfig = {
+  id: 'page40',
+  targetIndex: 8,
+  title: 'MAGWAI Sunscreen',
+  image: '/magazine/p40.webp',
+  size: [1080, 1485],
+  prefetch: false,
+  content: [
+    {
+      type: 'model',
+      id: 'magwai-sunscreen',
+      asset: '/models/magwai-sunscreen.glb',
+      // Nearly flat, so the layered reef cards face a phone looking down at the page and pop up towards it;
+      // the tube's base sits on the printed tube (on the towel).
+      anchor: 'cap.001',
+      hide: ['Cube.006'], // a leftover shampoo box from the shared scene
+      at: [770, 1300],
+      width: 560,
+      scale: 1,
+      stand: 12,
+    },
+  ],
+}
+
+/** p41 "Then MAGWAI looked at the bathroom": the shampoo bar in the same reef, on its printed bar in the waves. */
+const page41: TargetConfig = {
+  id: 'page41',
+  targetIndex: 9,
+  title: 'MAGWAI Shampoo Bar',
+  image: '/magazine/p41.webp',
+  size: [1080, 1485],
+  prefetch: false,
+  content: [
+    {
+      type: 'model',
+      id: 'magwai-shampoo',
+      asset: '/models/magwai-shampoo.glb',
+      anchor: 'Cube.006',
+      hide: ['cap.001'], // the sunscreen tube belongs to p40
+      at: [240, 1400],
+      width: 560,
+      scale: 1,
+      stand: 12,
+    },
+  ],
+}
+
 export const experience: ExperienceConfig = {
   mindFile: '/targets/targets.mind',
-  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39],
+  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41],
 }

@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import type { AudioContent, ImageContent, ModelContent, TextContent, VideoContent } from '../types'
 import { type BuildContext, type ContentNode, disposeObject, easeOutBack, intro } from './ContentNode'
 
@@ -94,18 +95,60 @@ export async function buildVideo(c: VideoContent, { page }: BuildContext): Promi
   }
 }
 
-/** Blender-exported GLB. Normalised so its largest side ≈ `scale` page widths, sat on the page. */
-export async function buildModel(c: ModelContent, { page, assets }: BuildContext): Promise<ContentNode> {
+/**
+ * Blender-exported GLB (glTF is Y-up). By default it stands straight up out of the page; `stand` tilts it
+ * back towards the page, so a front-facing diorama (flat cards layered along +Z) faces a phone held at a
+ * reading angle. Sized so its width is `width` page px (or its largest side ≈ `scale` page widths), with its
+ * base centred on `at` — or, with `anchor`, that node's base on `at` (e.g. the product on its printed twin).
+ * Short clips (≤ 3 s) are intros that play once; longer ones loop. Tap to replay the intros.
+ */
+export async function buildModel(c: ModelContent, { page, assets, view }: BuildContext): Promise<ContentNode> {
   const gltf = await assets.gltf(c.asset)
-  const model = gltf.scene.clone(true)
-  const box = new THREE.Box3().setFromObject(model)
+  const model = cloneSkinned(gltf.scene)
+  for (const n of c.hide ?? []) {
+    const o = model.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(n))
+    if (o) o.visible = false
+    else console.warn(`[ar] ${c.asset} has no node "${n}" to hide`)
+  }
+
+  // Soft studio reflections, toned down to sit with the camera picture (as for the p34 tub).
+  const env = view.environment()
+  model.traverse((o) => {
+    const mesh = o as THREE.Mesh
+    if (!mesh.isMesh) return
+    for (const m of [mesh.material].flat() as THREE.MeshStandardMaterial[]) {
+      if (!m.isMeshStandardMaterial) continue
+      m.envMap = env
+      m.envMapIntensity = 0.4
+      m.color.multiplyScalar(0.88)
+    }
+  })
+
+  model.updateMatrixWorld(true)
+  const box = new THREE.Box3()
+  model.traverseVisible((o) => {
+    if ((o as THREE.Mesh).isMesh) box.expandByObject(o)
+  })
   const size = box.getSize(new THREE.Vector3())
-  const norm = c.scale / Math.max(size.x, size.y, size.z, 1e-6)
-  // Blender is Z-up but glTF export converts to Y-up; stand the model up out of the page (+Z).
+  const norm = c.width ? page.len(c.width) / size.x : c.scale / Math.max(size.x, size.y, size.z, 1e-6)
+  // Base point: bottom-centre of the model (or of the anchor node). Standing up, its depth is centred on the
+  // page; lying back, its rear (−Z) rests on the page so nothing sinks below it.
+  const standRad = THREE.MathUtils.degToRad(c.stand ?? 90)
+  const depthOf = (b: THREE.Box3) => THREE.MathUtils.lerp(b.getCenter(new THREE.Vector3()).z, box.min.z, Math.cos(standRad))
+  const base = new THREE.Vector3(box.getCenter(new THREE.Vector3()).x, box.min.y, depthOf(box))
+  if (c.anchor) {
+    const a = model.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(c.anchor))
+    if (a) {
+      const ab = new THREE.Box3().setFromObject(a)
+      base.set(ab.getCenter(new THREE.Vector3()).x, ab.min.y, depthOf(ab))
+    } else console.warn(`[ar] ${c.asset} has no anchor node "${c.anchor}"`)
+  }
+  model.position.sub(base)
+
+  // Y-up → out of the page, then lean back by (90 − stand)°.
   const holder = new THREE.Group()
-  holder.rotation.x = Math.PI / 2
+  holder.rotation.x = standRad
   holder.add(model)
-  model.position.sub(new THREE.Vector3(box.getCenter(new THREE.Vector3()).x, box.min.y, box.getCenter(new THREE.Vector3()).z))
   const [rx, ry, rz] = (c.rotation ?? [0, 0, 0]).map(THREE.MathUtils.degToRad)
   const group = new THREE.Group()
   const [x, y] = page.point(c.at)
@@ -114,15 +157,37 @@ export async function buildModel(c: ModelContent, { page, assets }: BuildContext
   group.add(holder)
 
   const mixer = new THREE.AnimationMixer(model)
-  const clip = c.animation ? THREE.AnimationClip.findByName(gltf.animations, c.animation) : gltf.animations[0]
-  if (c.animation && !clip) console.warn(`[ar] animation "${c.animation}" not in ${c.asset}`, gltf.animations.map((a) => a.name))
-  if (clip) mixer.clipAction(clip).play()
+  const clips = c.animation ? gltf.animations.filter((a) => a.name === c.animation) : gltf.animations
+  if (c.animation && !clips.length) console.warn(`[ar] animation "${c.animation}" not in ${c.asset}`, gltf.animations.map((a) => a.name))
+  const intros: THREE.AnimationAction[] = []
+  for (const clip of clips) {
+    const action = mixer.clipAction(clip)
+    if (clip.duration <= 3) {
+      action.setLoop(THREE.LoopOnce, 1)
+      action.clampWhenFinished = true
+      intros.push(action)
+    }
+    action.play()
+  }
+  let started = false
 
   return {
     object: group,
     update({ t, dt }) {
-      group.scale.setScalar(Math.max(0.001, easeOutBack(intro(t, c.delay))) * norm)
-      mixer.update(dt)
+      const p = intro(t, c.delay, 0.8)
+      group.scale.setScalar(Math.max(0.001, easeOutBack(p)) * norm)
+      // Hold the scene at its first frame until it has popped in.
+      if (!started && p > 0) {
+        started = true
+        intros.forEach((a) => a.reset().play())
+      }
+      if (started) mixer.update(dt * (c.speed ?? 1))
+    },
+    onShow() {
+      intros.forEach((a) => a.reset().play())
+    },
+    onTap() {
+      intros.forEach((a) => a.reset().play())
     },
     dispose: () => {
       mixer.stopAllAction()
