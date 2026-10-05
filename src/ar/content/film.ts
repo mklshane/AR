@@ -135,12 +135,6 @@ const stamp: FrameStyle = {
     ctx.letterSpacing = '4px'
     ctx.fillText([c.subtitle, 'Docufilm', runtime(duration)].filter(Boolean).join(' · ').toUpperCase(), ST_WIN.x + 2, ST_WIN.y + ST_WIN.h + 130)
     ctx.letterSpacing = '0px'
-    // A "value" in the corner, as stamps have.
-    ctx.textAlign = 'right'
-    ctx.fillStyle = HONEY
-    ctx.font = '800 52px Montserrat, system-ui, sans-serif'
-    ctx.fillText('₱15', ST_WIN.x + ST_WIN.w, ST_WIN.y + ST_WIN.h + 84)
-    ctx.textAlign = 'left'
 
     // And a bee that has landed on the top-right corner.
     bee(ctx, ST.x + ST.w - 40, ST.y + 36, 118, 0.5)

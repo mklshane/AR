@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import type { Controller } from 'mind-ar/dist/mindar-image.prod.js'
 import { AssetManager } from './AssetManager'
+import { unlockMedia } from './mediaUnlock'
 import { Emitter } from './Emitter'
 import type { PoseFilterOptions } from './PoseFilter'
 import { preloadEngine, preloadTargets } from './preload'
@@ -425,6 +426,7 @@ export class ARManager extends Emitter<AREvents> {
   }
 
   private tapAt(clientX: number, clientY: number) {
+    unlockMedia() // a tap is a chance to top the sound-unlocked video pool back up
     this.lastTap = { x: clientX, y: clientY }
     this.targets.tap(this.rayAt(clientX, clientY))
   }
