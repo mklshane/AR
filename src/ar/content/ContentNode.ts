@@ -7,6 +7,15 @@ export interface BuildContext {
   page: PageSpace
   /** Source image of the current target (for poster crops). */
   targetImage: string
+  view: ViewServices
+}
+
+/** What content may ask of the live AR view. Implemented by ARManager. */
+export interface ViewServices {
+  /** Median camera-feed colour (sRGB) under these world-space points, or null if none are on screen. */
+  sampleCamera(points: THREE.Vector3[]): THREE.Color | null
+  /** Show an image full-screen over the camera, e.g. a speech bubble to read. */
+  openCard(card: { src: string; alt: string }): void
 }
 
 /** Per-frame timing passed to every node. `t` = seconds since the target was (re)found. */
@@ -21,8 +30,8 @@ export interface Tick {
 export interface ContentNode {
   object: THREE.Object3D
   update(tick: Tick): void
-  /** Called when the user taps this node's object. */
-  onTap?(): void
+  /** Called when the user taps this node's object; `hit` says which mesh. */
+  onTap?(hit: THREE.Intersection): void
   /** Called when the target is found again (replay intro, resume media). */
   onShow?(): void
   /** Called when the target is lost (pause media). */

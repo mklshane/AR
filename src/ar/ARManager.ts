@@ -37,6 +37,10 @@ interface AREvents extends Record<string, unknown> {
   lost: TargetConfig
   contentError: string[]
   error: ARError
+  /** Content asked to show an image full-screen (tap-to-read). */
+  card: { src: string; alt: string }
+  /** Current pinch zoom (1 = none). */
+  zoom: number
 }
 
 export interface AROptions {
@@ -70,6 +74,15 @@ export class ARManager extends Emitter<AREvents> {
   private pendingCapture?: (blob: Blob | null) => void
   private smoothing: boolean
   private cameraHeight: number
+  /** Pinch zoom: factor and the top-left of the visible window, in unzoomed container px. */
+  private zoomState = { z: 1, x: 0, y: 0 }
+  private pointers = new Map<number, { x: number; y: number }>()
+  private gesture: { dist: number; z: number; mid: { x: number; y: number }; anchor: { x: number; y: number } } | null = null
+  private panFrom: { x: number; y: number; zx: number; zy: number } | null = null
+  /** The current touch sequence zoomed or panned, so lifting the finger isn't a tap. */
+  private gestured = false
+  private sampleCtx?: CanvasRenderingContext2D
+  private videoBox = { left: 0, top: 0, width: 1, height: 1 }
   status: ARStatus = 'idle'
 
   constructor(container: HTMLElement, config: ExperienceConfig, opts: AROptions = {}) {
@@ -85,6 +98,7 @@ export class ARManager extends Emitter<AREvents> {
         if (event === 'contentError' && 'ids' in payload) this.emit('contentError', payload.ids)
         this.setStatus(this.targets.anyVisible ? 'tracking' : 'scanning')
       },
+      { sampleCamera: (p) => this.sampleCamera(p), openCard: (c) => this.emit('card', c) },
       { debug: opts.debug, smoothing: opts.smoothing ?? true, poseFilter: opts.poseFilter },
     )
     this.smoothing = opts.smoothing ?? true
@@ -169,7 +183,11 @@ export class ARManager extends Emitter<AREvents> {
     this.renderer?.dispose()
     this.renderer?.domElement.remove()
     window.removeEventListener('resize', this.onResize)
-    this.container.removeEventListener('pointerup', this.onTap)
+    this.container.removeEventListener('pointerdown', this.onPointerDown)
+    this.container.removeEventListener('pointermove', this.onPointerMove)
+    this.container.removeEventListener('pointerup', this.onPointerUp)
+    this.container.removeEventListener('pointercancel', this.onPointerUp)
+    this.container.removeEventListener('wheel', this.onWheel)
   }
 
   /** Dev/test hook used by the stability benchmark. */
@@ -245,7 +263,11 @@ export class ARManager extends Emitter<AREvents> {
     this.container.appendChild(renderer.domElement)
     this.renderer = renderer
     window.addEventListener('resize', this.onResize)
-    this.container.addEventListener('pointerup', this.onTap)
+    this.container.addEventListener('pointerdown', this.onPointerDown)
+    this.container.addEventListener('pointermove', this.onPointerMove)
+    this.container.addEventListener('pointerup', this.onPointerUp)
+    this.container.addEventListener('pointercancel', this.onPointerUp)
+    this.container.addEventListener('wheel', this.onWheel, { passive: false })
     this.clock.start()
     renderer.setAnimationLoop(() => {
       const dt = Math.min(this.clock.getDelta(), 0.1)
@@ -264,23 +286,163 @@ export class ARManager extends Emitter<AREvents> {
     out.width = gl.width
     out.height = gl.height
     const ctx = out.getContext('2d')!
-    // Same "cover" crop as the on-screen video.
+    // Same "cover" crop and zoom as the on-screen video.
+    const { z, x, y } = this.zoomState
+    const px = out.width / this.container.clientWidth
     const scale = Math.max(out.width / video.videoWidth, out.height / video.videoHeight)
     const w = video.videoWidth * scale
     const h = video.videoHeight * scale
+    ctx.setTransform(z, 0, 0, z, -x * z * px, -y * z * px)
     ctx.drawImage(video, (out.width - w) / 2, (out.height - h) / 2, w, h)
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
     ctx.drawImage(gl, 0, 0)
     out.toBlob(resolve, 'image/jpeg', 0.92)
   }
 
   private onResize = () => this.resize()
 
-  private onTap = (e: PointerEvent) => {
+  private onPointerDown = (e: PointerEvent) => {
     if ((e.target as HTMLElement).closest('button, a')) return
+    if (this.pointers.size === 0) this.gestured = false
+    this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (this.pointers.size === 2) this.beginPinch()
+    else if (this.pointers.size === 1) {
+      const { x, y } = this.zoomState
+      this.panFrom = { x: e.clientX, y: e.clientY, zx: x, zy: y }
+    }
+  }
+
+  private onPointerMove = (e: PointerEvent) => {
+    if (!this.pointers.has(e.pointerId)) return
+    this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (this.gesture && this.pointers.size >= 2) {
+      const [a, b] = [...this.pointers.values()]
+      const dist = Math.hypot(a.x - b.x, a.y - b.y)
+      const mid = this.local({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 })
+      const z = this.gesture.z * (dist / this.gesture.dist)
+      // Keep the page point that was under the fingers under them.
+      this.setZoom(z, this.gesture.anchor.x - mid.x / z, this.gesture.anchor.y - mid.y / z)
+      this.gestured = true
+    } else if (this.panFrom && this.zoomState.z > 1) {
+      const dx = e.clientX - this.panFrom.x
+      const dy = e.clientY - this.panFrom.y
+      if (!this.gestured && Math.hypot(dx, dy) < 8) return
+      this.gestured = true
+      const { z } = this.zoomState
+      this.setZoom(z, this.panFrom.zx - dx / z, this.panFrom.zy - dy / z)
+    }
+  }
+
+  private onPointerUp = (e: PointerEvent) => {
+    if (!this.pointers.delete(e.pointerId)) return
+    if (this.pointers.size === 1) {
+      // One finger left after a pinch: carry on as a pan from here.
+      const [p] = [...this.pointers.values()]
+      const { x, y } = this.zoomState
+      this.panFrom = { x: p.x, y: p.y, zx: x, zy: y }
+      this.gesture = null
+    }
+    if (this.pointers.size > 0) return
+    this.gesture = null
+    this.panFrom = null
+    if (!this.gestured && e.type === 'pointerup') this.tapAt(e.clientX, e.clientY)
+  }
+
+  /** Trackpad pinch (ctrl + wheel) on desktop, for testing. */
+  private onWheel = (e: WheelEvent) => {
+    if (!e.ctrlKey) return
+    e.preventDefault()
+    const p = this.local({ x: e.clientX, y: e.clientY })
+    const { z, x, y } = this.zoomState
+    const nz = z * Math.exp(-e.deltaY * 0.01)
+    const ax = x + p.x / z
+    const ay = y + p.y / z
+    this.setZoom(nz, ax - p.x / nz, ay - p.y / nz)
+  }
+
+  private beginPinch() {
+    const [a, b] = [...this.pointers.values()]
+    const mid = this.local({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 })
+    const { z, x, y } = this.zoomState
+    this.gesture = { dist: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), z, mid, anchor: { x: x + mid.x / z, y: y + mid.y / z } }
+    this.panFrom = null
+  }
+
+  private local(p: { x: number; y: number }) {
+    const r = this.container.getBoundingClientRect()
+    return { x: p.x - r.left, y: p.y - r.top }
+  }
+
+  resetZoom() {
+    this.setZoom(1, 0, 0)
+  }
+
+  /** Zoom by narrowing the 3D camera's view window (stays sharp) and scaling the camera feed to match. */
+  private setZoom(z: number, x: number, y: number) {
+    const cw = this.container.clientWidth
+    const ch = this.container.clientHeight
+    z = Math.min(4, Math.max(1, z))
+    if (z < 1.02) z = 1
+    x = Math.min(cw - cw / z, Math.max(0, x))
+    y = Math.min(ch - ch / z, Math.max(0, y))
+    const changed = z !== this.zoomState.z
+    this.zoomState = { z, x, y }
+    if (z === 1) this.camera.clearViewOffset()
+    else this.camera.setViewOffset(cw, ch, x, y, cw / z, ch / z)
+    if (this.video) {
+      const { left, top } = this.videoBox
+      this.video.style.transformOrigin = `${-left}px ${-top}px`
+      this.video.style.transform = z === 1 ? '' : `translate(${-x * z}px, ${-y * z}px) scale(${z})`
+    }
+    if (changed) this.emit('zoom', z)
+  }
+
+  private tapAt(clientX: number, clientY: number) {
     const rect = this.container.getBoundingClientRect()
-    const ndc = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1)
+    const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1)
     this.raycaster.setFromCamera(ndc, this.camera)
     this.targets.tap(this.raycaster)
+  }
+
+  /** Median camera colour under world-space points (each projected through the current, zoomed view). */
+  private sampleCamera(points: THREE.Vector3[]): THREE.Color | null {
+    const video = this.video
+    if (!video || video.readyState < 2 || !video.videoWidth) return null
+    const W = 160
+    const H = Math.round((W * video.videoHeight) / video.videoWidth)
+    if (!this.sampleCtx) {
+      const c = document.createElement('canvas')
+      this.sampleCtx = c.getContext('2d', { willReadFrequently: true })!
+    }
+    const ctx = this.sampleCtx
+    if (ctx.canvas.width !== W || ctx.canvas.height !== H) Object.assign(ctx.canvas, { width: W, height: H })
+    ctx.drawImage(video, 0, 0, W, H)
+    const px = ctx.getImageData(0, 0, W, H).data
+    const cw = this.container.clientWidth
+    const ch = this.container.clientHeight
+    const { z, x, y } = this.zoomState
+    const { left, top, width, height } = this.videoBox
+    const rs: number[] = []
+    const gs: number[] = []
+    const bs: number[] = []
+    const v = new THREE.Vector3()
+    for (const p of points) {
+      v.copy(p).project(this.camera)
+      if (v.z > 1) continue
+      // zoomed NDC → unzoomed container px → video px
+      const cx = x + ((v.x + 1) / 2) * (cw / z)
+      const cy = y + ((1 - v.y) / 2) * (ch / z)
+      const u = Math.floor(((cx - left) / width) * W)
+      const w = Math.floor(((cy - top) / height) * H)
+      if (u < 0 || w < 0 || u >= W || w >= H) continue
+      const i = (w * W + u) * 4
+      rs.push(px[i])
+      gs.push(px[i + 1])
+      bs.push(px[i + 2])
+    }
+    if (rs.length < 3) return null
+    const med = (a: number[]) => a.sort((m, n) => m - n)[a.length >> 1] / 255
+    return new THREE.Color().setRGB(med(rs), med(gs), med(bs), THREE.SRGBColorSpace)
   }
 
   /** Fit video ("cover") and derive the camera frustum from MindAR's projection (ported from MindARThree). */
@@ -313,13 +475,16 @@ export class ARManager extends Emitter<AREvents> {
     camera.aspect = cw / ch
     camera.updateProjectionMatrix()
 
+    this.videoBox = { left: -(vw - cw) / 2, top: -(vh - ch) / 2, width: vw, height: vh }
     Object.assign(video.style, {
-      top: `${-(vh - ch) / 2}px`,
-      left: `${-(vw - cw) / 2}px`,
+      top: `${this.videoBox.top}px`,
+      left: `${this.videoBox.left}px`,
       width: `${vw}px`,
       height: `${vh}px`,
     })
     renderer.setSize(cw, ch)
+    const { z, x, y } = this.zoomState
+    this.setZoom(z, x, y)
   }
 
   private setStatus(s: ARStatus) {

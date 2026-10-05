@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import type { AssetManager } from './AssetManager'
 import { DEFAULT_POSE_FILTER, PoseFilter, type PoseFilterOptions } from './PoseFilter'
 import type { TargetConfig } from './types'
+import type { ViewServices } from './content/ContentNode'
 import { TargetScene } from '../scenes/TargetScene'
 
 /** Re-detections within this many seconds don't replay the intro animation (avoids flicker restarts). */
@@ -20,8 +21,8 @@ interface Anchor {
   scene?: TargetScene
   building?: Promise<void>
   visible: boolean
-  foundAt: number
-  lostAt: number
+  /** Shared by every target in the same `group`, so switching between them doesn't replay the intro. */
+  timing: { foundAt: number; lostAt: number }
 }
 
 export interface TargetEvents {
@@ -38,13 +39,17 @@ export class TargetManager {
   private debug: boolean
   private smoothing: boolean
   private poseFilter: PoseFilterOptions
+  private view: ViewServices
+  private groups = new Map<string, Anchor['timing']>()
 
   constructor(
     scene: THREE.Scene,
     assets: AssetManager,
     onEvent: <K extends keyof TargetEvents>(e: K, p: TargetEvents[K]) => void,
+    view: ViewServices,
     { debug = false, smoothing = true, poseFilter = {} as Partial<PoseFilterOptions> } = {},
   ) {
+    this.view = view
     this.poseFilter = { ...DEFAULT_POSE_FILTER, ...poseFilter }
     this.scene = scene
     this.assets = assets
@@ -79,10 +84,16 @@ export class TargetManager {
         rawPose: new THREE.Matrix4(),
         filter: this.smoothing ? new PoseFilter(this.poseFilter) : null,
         visible: false,
-        foundAt: 0,
-        lostAt: -Infinity,
+        timing: this.timingFor(config),
       })
     }
+  }
+
+  private timingFor(config: TargetConfig): Anchor['timing'] {
+    const fresh = { foundAt: 0, lostAt: -Infinity }
+    if (!config.group) return fresh
+    if (!this.groups.has(config.group)) this.groups.set(config.group, fresh)
+    return this.groups.get(config.group)!
   }
 
   /** Called from MindAR's onUpdate with the target's world matrix (or null when lost). */
@@ -99,7 +110,7 @@ export class TargetManager {
       if (!a.visible) {
         a.visible = true
         a.group.visible = true
-        if (now - a.lostAt > REINTRO_AFTER_S) a.foundAt = now
+        if (now - a.timing.lostAt > REINTRO_AFTER_S) a.timing.foundAt = now
         this.ensureScene(a)
         a.scene?.show()
         console.info(`[ar] target found: ${a.config.id}`)
@@ -110,7 +121,7 @@ export class TargetManager {
       if (a.visible) {
         a.visible = false
         a.group.visible = false
-        a.lostAt = now
+        a.timing.lostAt = now
         a.scene?.hide()
         console.info(`[ar] target lost: ${a.config.id}`)
         this.onEvent('lost', { config: a.config })
@@ -144,7 +155,7 @@ export class TargetManager {
     if (a.scene || a.building) return
     const scene = new TargetScene(a.config)
     const t0 = performance.now()
-    a.building = scene.build(this.assets).then((failed) => {
+    a.building = scene.build(this.assets, this.view).then((failed) => {
       console.info(`[ar] timing build ${a.config.id} ${Math.round(performance.now() - t0)}ms`)
       a.scene = scene
       a.group.add(scene.root)
@@ -156,7 +167,7 @@ export class TargetManager {
   tick(now: number, dt: number) {
     for (const a of this.anchors.values()) {
       if (!a.visible) continue
-      a.scene?.update({ t: now - a.foundAt, dt, time: now })
+      a.scene?.update({ t: now - a.timing.foundAt, dt, time: now })
     }
   }
 

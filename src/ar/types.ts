@@ -107,6 +107,13 @@ export interface TimelineContent {
   src: string
   /** Resting height per layer id once it has landed (fraction of page width). Defaults by kind. */
   lift?: Record<string, number>
+  /** Text of each speech bubble by layer id: the alt text of its tap-to-read card. */
+  captions?: Record<string, string>
+  /**
+   * When this target is a crop of the page the timeline was registered to: the crop's rect on that
+   * page, in its pixels ([x, y, w, h] on public/magazine/pNN.webp).
+   */
+  region?: [x: number, y: number, w: number, h: number]
 }
 
 export interface AudioContent {
@@ -144,6 +151,11 @@ export interface TargetConfig {
    * pages with large videos/models so they only download when that page is actually scanned.
    */
   prefetch?: boolean
+  /**
+   * Targets sharing a group share one intro clock: e.g. a whole page and a close-up crop of it, so
+   * moving the phone closer swaps trackers without restarting the animation.
+   */
+  group?: string
   /** Burst of particles where the user taps. */
   tapBurst?: { colors: string[] }
 }

@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { AssetManager } from '../ar/AssetManager'
 import { PageSpace } from '../ar/coords'
-import type { ContentNode, Tick } from '../ar/content/ContentNode'
+import type { ContentNode, Tick, ViewServices } from '../ar/content/ContentNode'
 import { buildContent } from '../ar/content'
 import { TapBurst } from '../ar/content/TapBurst'
 import type { TargetConfig } from '../ar/types'
@@ -21,8 +21,8 @@ export class TargetScene {
   }
 
   /** Builds all content. Items that fail (e.g. a missing GLB) are skipped and reported, not fatal. */
-  async build(assets: AssetManager): Promise<string[]> {
-    const ctx = { assets, page: new PageSpace(this.config.size), targetImage: this.config.image }
+  async build(assets: AssetManager, view: ViewServices): Promise<string[]> {
+    const ctx = { assets, view, page: new PageSpace(this.config.size), targetImage: this.config.image }
     const results = await Promise.allSettled(this.config.content.map((item) => buildContent(item, ctx)))
     const failures: string[] = []
     results.forEach((r, i) => {
@@ -60,7 +60,7 @@ export class TargetScene {
   tap(hit: THREE.Intersection | null, pagePoint: THREE.Vector3 | null) {
     let o: THREE.Object3D | null = hit?.object ?? null
     while (o && !o.userData.node) o = o.parent
-    ;(o?.userData.node as ContentNode | undefined)?.onTap?.()
+    if (hit) (o?.userData.node as ContentNode | undefined)?.onTap?.(hit)
     const at = hit ? this.root.worldToLocal(hit.point.clone()) : pagePoint
     if (at) this.burst?.fire(at)
   }

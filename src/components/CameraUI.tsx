@@ -5,6 +5,7 @@ import { ARControls } from './ARControls'
 import { ErrorScreen } from './ErrorScreen'
 import { LoadingScreen } from './LoadingScreen'
 import { PhotoSheet } from './PhotoSheet'
+import { ReadCard } from './ReadCard'
 import { ScanOverlay } from './ScanOverlay'
 import { Leaf } from './Leaf'
 import { TrackingHud } from './TrackingHud'
@@ -32,6 +33,8 @@ export function CameraUI({ config, debug, smoothing, onExit }: Props) {
   const [toast, setToast] = useState<string | null>(null)
   const [photo, setPhoto] = useState<{ blob: Blob; url: string } | null>(null)
   const [attempt, setAttempt] = useState(0)
+  const [card, setCard] = useState<{ src: string; alt: string } | null>(null)
+  const [zoom, setZoom] = useState(1)
 
   useEffect(() => {
     // Tuning: ?pf=minCutoff,maxCutoff,beta,noiseSigma,motionSigma (works on deployed builds, for phone tests)
@@ -51,6 +54,8 @@ export function CameraUI({ config, debug, smoothing, onExit }: Props) {
         setToast('Nakita!')
       }),
       ar.on('contentError', (ids) => console.warn('[ar] some content failed to load:', ids)),
+      ar.on('card', setCard),
+      ar.on('zoom', setZoom),
     ]
     ar.start()
     return () => {
@@ -85,7 +90,8 @@ export function CameraUI({ config, debug, smoothing, onExit }: Props) {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-ink select-none">
-      <div ref={containerRef} key={attempt} className="absolute inset-0" />
+      {/* touch-none: pinches zoom the AR view, not the web page */}
+      <div ref={containerRef} key={attempt} className="absolute inset-0 touch-none" />
 
       {status === 'loading' && !error && !cameraReady && <LoadingScreen step={step} />}
       {status === 'loading' && !error && cameraReady && <ScanOverlay lost={false} preparing={step} />}
@@ -97,8 +103,22 @@ export function CameraUI({ config, debug, smoothing, onExit }: Props) {
         </div>
       )}
 
+      {zoom > 1 && (
+        <button
+          onClick={() => managerRef.current?.resetZoom()}
+          aria-label="Reset zoom"
+          className="absolute top-[max(1.4rem,env(safe-area-inset-top))] right-4 z-20 flex items-center gap-1.5 rounded-full bg-ink/55 py-1.5 pr-2.5 pl-3 text-sm font-semibold text-paper tabular-nums backdrop-blur"
+        >
+          {zoom.toFixed(1)}×
+          <svg viewBox="0 0 20 20" className="h-3 w-3" aria-hidden="true">
+            <path d="M4 4l12 12M16 4L4 16" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+          </svg>
+        </button>
+      )}
+
       {showHud && <TrackingHud manager={getManager} />}
       <ARControls onClose={onExit} onCapture={ready ? capture : undefined} />
+      {card && <ReadCard src={card.src} alt={card.alt} onClose={() => setCard(null)} />}
       {error && <ErrorScreen code={error} onRetry={retry} onBack={onExit} />}
       {photo && (
         <PhotoSheet

@@ -22,14 +22,19 @@ interface Timeline {
   videoToPage: { scale: number; offset: [number, number] }
   clip: { src: string; rect: [number, number, number, number] }
   patch: { src: string; rect: [number, number, number, number] }
+  /** Plain paper near the patch, in page px: sampled from the camera to tint the patch like the real page. */
+  paper: [number, number][]
   layers: Layer[]
 }
 
 const DEFAULT_LIFT = { basket: 0, fruit: 0.035, bubble: 0.07 }
+const WHITE = new THREE.Color(1, 1, 1)
 /** Seconds for a fruit to rise from the page to its resting height after the swap. */
 const RISE = 0.8
 /** If the clip hasn't started this long after the page is found, skip straight to the sprites. */
 const CLIP_TIMEOUT = 2
+/** How often to re-read the paper colour from the camera, in seconds. */
+const PAPER_EVERY = 0.25
 /** Flat stack just above the paper: patch < clip < basket. */
 const Z = { patch: 0.0002, clip: 0.0004, basket: 0.0006 }
 
@@ -38,14 +43,18 @@ const Z = { patch: 0.0002, clip: 0.0004, basket: 0.0006 }
  * plays as a clip with stacked alpha; at `swap` the clip hands over to sprites that match its last frame
  * exactly, which then rise off the paper while the speech bubbles pop in.
  */
-export async function buildTimeline(c: TimelineContent, { page, assets }: BuildContext): Promise<ContentNode> {
+export async function buildTimeline(c: TimelineContent, { page, assets, view }: BuildContext): Promise<ContentNode> {
   const res = await fetch(c.src)
   if (!res.ok) throw new Error(`Could not load timeline ${c.src}`)
   const tl = (await res.json()) as Timeline
+  // video px → page px → this target's px (a close-up target is a scaled crop of the page)
+  const [rx, ry, rw] = c.region ?? [0, 0, page.width]
+  const f = c.region ? page.width / rw : 1
   const k = tl.videoToPage.scale
   const [ox, oy] = tl.videoToPage.offset
-  const at = (x: number, y: number) => page.point([k * x + ox, k * y + oy])
-  const len = (v: number) => page.len(k * v)
+  const onPage = (x: number, y: number) => page.point([(x - rx) * f, (y - ry) * f])
+  const at = (x: number, y: number) => onPage(k * x + ox, k * y + oy)
+  const len = (v: number) => page.len(k * v * f)
   const swapT = tl.swap / tl.fps
   const group = new THREE.Group()
 
@@ -63,6 +72,10 @@ export async function buildTimeline(c: TimelineContent, { page, assets }: BuildC
   placeRect(patch, tl.patch.rect, Z.patch)
   patch.renderOrder = -3
   group.add(patch)
+  const paperPoints = tl.paper.map(([x, y]) => new THREE.Vector3(...onPage(x, y), 0))
+  const paperWorld = paperPoints.map((p) => p.clone())
+  const paperTone = new THREE.Color(1, 1, 1)
+  let paperAt = -Infinity
 
   // Take-off clip: colour in the top half, alpha (grey) in the bottom half.
   const video = document.createElement('video')
@@ -108,6 +121,9 @@ export async function buildTimeline(c: TimelineContent, { page, assets }: BuildC
       return { layer, mesh, shadow, lift: c.lift?.[layer.id] ?? DEFAULT_LIFT[layer.kind], phase: i * 1.7 }
     }),
   )
+  const byMesh = new Map<THREE.Object3D, (typeof sprites)[number]>()
+  for (const s of sprites) byMesh.set(s.mesh, s).set(s.shadow, s)
+  const bubbleOf = (id: string) => sprites.find((s) => s.layer.id === (id.startsWith('bubble-') ? id : `bubble-${id}`))
 
   const poseAt = (layer: Layer, frame: number): Pose | null => {
     const i = frame - layer.from
@@ -126,21 +142,31 @@ export async function buildTimeline(c: TimelineContent, { page, assets }: BuildC
   let phase: 'clip' | 'sprites' = 'clip'
   let lag = 0
   let waitFrom = 0
-  let lastT = Infinity
+  /** Set on every show: line the animation up with the (possibly shared) scan clock on the next tick. */
+  let resync = true
   let shown = false
+  /** Start (or join, when the tracker switches between page and close-up mid-way) at scan time t. */
   const restart = (t: number) => {
+    if (t >= swapT) {
+      if (phase !== 'sprites') lag = 0
+      phase = 'sprites'
+      video.pause()
+      return
+    }
     phase = 'clip'
     waitFrom = t
-    video.currentTime = 0
+    video.currentTime = t
     if (shown) void video.play().catch(() => undefined)
   }
 
   return {
     object: group,
     update({ t, time }) {
-      // t drops back towards 0 when the page is re-found after a while: replay from the full basket.
-      if (t < lastT - 0.25 || lastT === Infinity) restart(t)
-      lastT = t
+      // t is back near 0 when the page is re-found after a while, so this replays from the full basket.
+      if (resync) {
+        resync = false
+        restart(t)
+      }
 
       let tau: number
       const clipLive = phase === 'clip' && video.readyState >= 2 && video.currentTime > 0
@@ -163,6 +189,16 @@ export async function buildTimeline(c: TimelineContent, { page, assets }: BuildC
       const landed = phase === 'sprites'
       clip.visible = clipLive && !landed
       patch.visible = clipLive || landed
+
+      // Tint the patch like the paper the camera actually sees (white paper reads grey/warm on camera).
+      if (patch.visible && time - paperAt > PAPER_EVERY) {
+        paperAt = time
+        group.updateWorldMatrix(true, false)
+        paperWorld.forEach((w, i) => w.copy(paperPoints[i]).applyMatrix4(group.matrixWorld))
+        const seen = view.sampleCamera(paperWorld)
+        if (seen) paperTone.lerp(seen, paperTone.equals(WHITE) ? 1 : 0.5)
+        ;(patch.material as THREE.MeshBasicMaterial).color.copy(paperTone)
+      }
       if (landed && !video.paused) video.pause()
 
       for (const s of sprites) {
@@ -193,9 +229,17 @@ export async function buildTimeline(c: TimelineContent, { page, assets }: BuildC
         ;(shadow.material as THREE.MeshBasicMaterial).opacity = 0.28 * shade
       }
     },
+    // Tap a bubble (or its fruit) to read it full-screen.
+    onTap: (hit) => {
+      const s = byMesh.get(hit.object)
+      if (!s || !s.mesh.visible) return
+      const bubble = s.layer.kind === 'bubble' ? s : bubbleOf(s.layer.id)
+      if (!bubble || !bubble.mesh.visible || bubble.mesh.scale.x < 0.5) return
+      view.openCard({ src: bubble.layer.src, alt: c.captions?.[bubble.layer.id] ?? bubble.layer.id.replace('bubble-', '') })
+    },
     onShow: () => {
       shown = true
-      if (phase === 'clip') void video.play().catch(() => undefined)
+      resync = true
     },
     onHide: () => {
       shown = false

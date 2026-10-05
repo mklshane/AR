@@ -11,6 +11,7 @@ Outputs:
   public/ar/p13/takeoff.mp4     frames 0..SWAP, colour on top / alpha below (H.264, plays on iOS)
   public/ar/p13/<id>.webp       basket, fruits and bubbles (transparent)
   public/ar/p13/patch.webp      silhouette of the printed basket + fruits (white-out under the AR)
+  public/ar/p13/closeup.webp    the basket area alone, a second tracking target for close-ups
   public/ar/p13/timeline.json   sizes, per-frame poses, clip crop and the video→page mapping
 
 Usage: python3 scripts/extract-page13.py [design/reference/fruits-ar.mp4]
@@ -344,7 +345,49 @@ def main():
     white = np.dstack([np.full(patch.shape + (3,), 255, np.uint8), (np.clip(patch, 0, 1) * 255).astype(np.uint8)])
     cv2.imwrite(os.path.join(OUT, 'patch.webp'), white, [cv2.IMWRITE_WEBP_QUALITY, 90])
 
-    # ---- 8. Timeline ------------------------------------------------------------------------------
+    # ---- 8. Paper samples: plain white paper around the patch, to tint the patch like the real page --
+    to_page = lambda x, y: (scale * x + M[0, 2], scale * y + M[1, 2])
+    qx0, qy0 = to_page(px0, py0)
+    qx1, qy1 = to_page(px1, py1)
+    white = (page.min(axis=2) >= 245).astype(np.uint8)
+    white = cv2.erode(white, np.ones((25, 25), np.uint8))  # well clear of text and art
+    sil = cv2.warpAffine(a0 * 255, M, (page.shape[1], page.shape[0])) > 0
+    white[cv2.dilate(sil.astype(np.uint8), np.ones((41, 41), np.uint8)) > 0] = 0
+    ring = np.zeros_like(white)
+    m = 80
+    ring[max(0, int(qy0) - m):int(qy1) + m, max(0, int(qx0) - m):int(qx1) + m] = 1
+    ys, xs = np.where(white & ring)
+    order = np.random.default_rng(13).permutation(len(xs))
+    paper = []
+    for i in order:  # spread out: keep points at least 40px apart
+        if all(np.hypot(xs[i] - x, ys[i] - y) > 40 for x, y in paper):
+            paper.append((int(xs[i]), int(ys[i])))
+        if len(paper) == 24:
+            break
+    print(f'  {len(paper)} paper sample points')
+
+    # ---- 9. Close-up target: the basket area alone, so tracking holds with the phone up close ------
+    rx0, ry0 = max(0, int(qx0 - 0.25 * (qx1 - qx0))), max(0, int(qy0 - 0.25 * (qy1 - qy0)))
+    rx1, ry1 = min(page.shape[1], int(qx1 + 0.25 * (qx1 - qx0))), min(page.shape[0], int(qy1 + 0.25 * (qy1 - qy0)))
+    region = [rx0, ry0, rx1 - rx0, ry1 - ry0]
+    pdf = os.path.join(ROOT, 'design/living-magazine.pdf')
+    if os.path.exists(pdf):
+        # Same TrimBox crop as scripts/export-magazine.sh, at 2x (270 dpi → 2160 px wide).
+        import subprocess, tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            dpi = 270
+            inset, w, h = round(29.5 * dpi / 72), round(576 * dpi / 72), round(792 * dpi / 72)
+            subprocess.run(['pdftoppm', '-r', str(dpi), '-f', '13', '-l', '13', '-singlefile', '-x', str(inset), '-y', str(inset),
+                            '-W', str(w), '-H', str(h), '-png', pdf, f'{tmp}/p'], check=True)
+            hi = cv2.imread(f'{tmp}/p.png')
+        k2 = hi.shape[1] / page.shape[1]
+        crop = hi[int(ry0 * k2):int(ry1 * k2), int(rx0 * k2):int(rx1 * k2)]
+        cv2.imwrite(os.path.join(OUT, 'closeup.webp'), crop, [cv2.IMWRITE_WEBP_QUALITY, 90])
+        print(f'  closeup.webp {crop.shape[1]}×{crop.shape[0]} — page13-closeup: size [{crop.shape[1]}, {crop.shape[0]}], region {region}')
+    else:
+        print(f'  (no {os.path.relpath(pdf, ROOT)}; skipped closeup.webp) region {region}')
+
+    # ---- 10. Timeline -----------------------------------------------------------------------------
     def r(v, d=1):
         return round(float(v), d)
 
@@ -373,6 +416,8 @@ def main():
         'videoToPage': {'scale': r(scale, 5), 'offset': [r(M[0, 2], 2), r(M[1, 2], 2)]},
         'clip': {'src': '/ar/p13/takeoff.mp4', 'rect': [int(x0 / H), int(y0 / H), int(w / H), int(h / H)]},
         'patch': {'src': '/ar/p13/patch.webp', 'rect': [int(px0), int(py0), int(px1 - px0), int(py1 - py0)]},
+        # page px (on public/magazine/p13.webp) of plain paper near the patch
+        'paper': paper,
         'layers': layers,
     }
     with open(TIMELINE, 'w') as fh:
