@@ -240,14 +240,14 @@ const page41: TargetConfig = {
   ],
 }
 
-/** p52 "It's Four O'Clock!": the clock's people come alive (the page re-made as a clip by scripts/page-video.py). */
+/** p52 "It's Four O'Clock!": the clock's people and things come alive over the print (scripts/page-video.py --alpha). */
 const page52: TargetConfig = {
   id: 'page52',
   targetIndex: 10,
   title: "It's Four O'Clock!",
   image: '/magazine/p52.webp',
   size: [1080, 1485],
-  content: [{ type: 'video', id: 'four-oclock', src: '/ar/p52/four-oclock.mp4', cover: true, at: [540, 742], width: 1080, loop: true }],
+  content: [{ type: 'alpha-video', id: 'four-oclock', src: '/ar/p52/four-oclock-alpha.mp4', at: [540, 742], width: 1080, loop: true }],
 }
 
 export const experience: ExperienceConfig = {

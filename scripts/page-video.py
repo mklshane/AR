@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
 """
-Turn a designer's animated version of a page (its pieces moving on a plain white background) into a clip
-that covers the printed page in AR.
+Turn a designer's animated version of a page (its pieces moving on a plain white background) into a
+page-sized AR clip, lined up with the print. Two outputs:
 
-The animation rarely matches the print exactly (pieces are moved or re-posed), so overlaying only the moving
-parts would leave the printed poses showing through. Instead each frame is laid over a clean copy of the
-page (its paper and fixed type, with the printed pieces painted out), giving an opaque, page-sized clip.
+  --alpha        just the pieces, transparent around them: colour over alpha, stacked (the `alpha-video`
+                 layout). The printed page shows through, including any printed piece the animation moved.
+  --clean IMG    the pieces over IMG, a copy of the page with its printed pieces painted out: an opaque clip
+                 (for the `video` type's `cover` mode) that hides the print's poses completely.
 
   1. Register the animation to the page (SIFT + a similarity transform, from one frame).
   2. Key out the white background: near-white pixels connected to the frame's edge, plus enclosed holes
      (e.g. inside a bag strap) only where they're pure white and bigger than a speck, so white clothes inside
      a figure stay solid. Edges are feathered and the white fringe divided back out.
-  3. Composite over the clean page and encode H.264 (no audio), page-sized.
+  3. Write colour over alpha, or composite over the clean page; encode H.264 (no audio), page-sized.
 
 Usage:
-  python3 scripts/page-video.py ANIM.mp4 PAGE.webp CLEAN.png OUT.mp4 [--ref-time 3] [--crf 20]
+  python3 scripts/page-video.py ANIM.mp4 PAGE.webp OUT.mp4 (--alpha | --clean CLEAN.png) [--ref-time 3] [--crf 20]
 
-CLEAN.png is the page with its pieces painted out (same size as PAGE). Needs opencv-python, numpy, ffmpeg.
+Needs opencv-python, numpy, ffmpeg.
 """
 import argparse
 import subprocess
@@ -61,15 +62,17 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('anim')
     ap.add_argument('page')
-    ap.add_argument('clean')
     ap.add_argument('output')
+    mode = ap.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--alpha', action='store_true', help='pieces only: colour over alpha, stacked')
+    mode.add_argument('--clean', help='opaque: pieces over this page image with its pieces painted out')
     ap.add_argument('--ref-time', type=float, default=3.0, help='seconds into the clip of the frame to register')
     ap.add_argument('--white', type=int, default=248, help='darkest channel value still counted as background')
     ap.add_argument('--crf', type=int, default=20)
     args = ap.parse_args()
 
     page = cv2.imread(args.page)
-    clean = cv2.imread(args.clean).astype(np.float32)
+    clean = None if args.alpha else cv2.imread(args.clean).astype(np.float32)
     H, W = page.shape[:2]
     cap = cv2.VideoCapture(args.anim)
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -86,7 +89,7 @@ def main():
 
     Ho = H // 2 * 2
     enc = subprocess.Popen(
-        ['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'bgr24', '-s', f'{W}x{Ho}', '-r', str(fps), '-i', '-',
+        ['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'bgr24', '-s', f'{W}x{Ho * 2 if args.alpha else Ho}', '-r', str(fps), '-i', '-',
          # Convert and tag as BT.709, so phones decode the same colours (untagged, the paper turned greenish).
          '-vf', 'scale=out_color_matrix=bt709:out_range=tv', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709',
          '-c:v', 'libx264', '-preset', 'slow', '-crf', str(args.crf), '-pix_fmt', 'yuv420p', '-profile:v', 'high',
@@ -102,8 +105,13 @@ def main():
         rgb, a = matte(small, args.white)
         rgb = cv2.warpAffine(rgb, M, (W, H), flags=cv2.INTER_LINEAR, borderValue=(0, 0, 0))
         a = cv2.warpAffine(a, M, (W, H), flags=cv2.INTER_LINEAR, borderValue=0)[..., None]
-        out = clean * (1 - a) + rgb * a
-        enc.stdin.write(np.clip(out[:Ho], 0, 255).astype(np.uint8).tobytes())
+        if args.alpha:
+            rgb[a[..., 0] <= 0] = 0  # empty colour where fully transparent (smaller file)
+            out = np.vstack([rgb[:Ho], np.repeat(a[:Ho] * 255, 3, axis=2)])
+        else:
+            out = clean * (1 - a) + rgb * a
+            out = out[:Ho]
+        enc.stdin.write(np.clip(out, 0, 255).astype(np.uint8).tobytes())
         n += 1
     enc.stdin.close()
     enc.wait()
