@@ -5,8 +5,10 @@ import type { FilmContent } from '../types'
 import { type BuildContext, type ContentNode, type FilmHandle, clamp01, disposeObject, easeOutBack, intro } from './ContentNode'
 
 /**
- * A page's documentary, framed to match that page's design. Starts with sound when the browser allows
- * (see mediaUnlock), and can go full-screen and back without losing its place (see FilmHandle).
+ * A page's documentary, framed to match that page's design. It pops up on the page, then lifts off it
+ * to fill the screen's width (see SCREEN), so it's watchable however small the print is in the camera.
+ * Starts with sound when the browser allows (see mediaUnlock), and can go full-screen and back without
+ * losing its place (see FilmHandle).
  */
 
 type Rect = { x: number; y: number; w: number; h: number }
@@ -16,6 +18,8 @@ interface FrameStyle {
   size: [number, number]
   /** Where the film shows through, in canvas px (16:9). */
   win: Rect
+  /** Everything that's drawn (film, border, corners, caption), in canvas px; this is what fits the screen. */
+  box: Rect
   /** Paint everything around the window; the window itself must end up transparent. */
   draw(ctx: CanvasRenderingContext2D, c: FilmContent, duration: number, assets: AssetManager): Promise<void>
   /** Optional window shape (white = film) when it isn't a plain rectangle. */
@@ -49,6 +53,7 @@ function hexPath(ctx: CanvasRenderingContext2D, { x, y, w, h }: Rect, grow = 0) 
 const hex: FrameStyle = {
   size: [1200, 860],
   win: HEX_WIN,
+  box: { x: 52, y: 22, w: 1096, h: 738 },
   async draw(ctx, c, duration) {
     const INK = '#2e2418'
     const HONEY = '#e2a72e'
@@ -122,21 +127,32 @@ const hex: FrameStyle = {
 
 // ---- p24 "flourish": the page's own white baroque corners around the film, script caption below ----
 
-// The film is 880×480 (the source's own black matte cropped off) with softly rounded corners.
+// The film is 1320×720 (the source's own black matte cropped off) with softly rounded corners.
 const FL_WIN: Rect = { x: 70, y: 70, w: 1060, h: 578 }
 const FL_RADIUS = 38
+// The two corners as a matched pair: same size, each overhanging its corner of the film by FL_OVER,
+// so their outer strokes straddle the film's edge rather than covering the picture.
+const FL_CORNER_W = 250
+const FL_OVER = 16
+const FL_TAB = { x: FL_WIN.x + 46, y: FL_WIN.y + FL_WIN.h - 10, w: 500, h: 150 }
 const SAGE = '#9db48a' // the page's background
 
 const flourish: FrameStyle = {
   size: [1200, 860],
   win: FL_WIN,
+  box: {
+    x: FL_WIN.x - FL_OVER,
+    y: FL_WIN.y - FL_OVER,
+    w: FL_WIN.w + 2 * FL_OVER,
+    h: FL_TAB.y + FL_TAB.h - (FL_WIN.y - FL_OVER),
+  },
   async draw(ctx, c, duration, assets) {
     const win = FL_WIN
     const [tl, br] = await Promise.all([assets.image('/ar/p24/flourish-tl.webp'), assets.image('/ar/p24/flourish-br.webp')])
     await loadFonts('96px "Miss Fajardose"', '600 20px Montserrat')
 
     // Caption tab in the page's sage, tucked under the bottom-left (so it reads over the portrait too).
-    const tab = { x: win.x + 46, y: win.y + win.h - 10, w: 500, h: 150 }
+    const tab = FL_TAB
     ctx.save()
     ctx.shadowColor = 'rgba(24, 44, 20, 0.35)'
     ctx.shadowBlur = 24
@@ -168,13 +184,12 @@ const flourish: FrameStyle = {
     ctx.fillText(line.toUpperCase(), tab.x + 32, tab.y + 128)
     ctx.letterSpacing = '0px'
 
-    // The page's white corners at their printed size (44% of the portrait's width), overhanging a little,
-    // so the top-left one lands on the printed one when the film sits on the portrait's corner.
-    const fw = win.w * 0.435
+    // The page's white corners, outer edges just past the film's corners.
+    const fw = FL_CORNER_W
     const tlh = (fw * tl.height) / tl.width
     const brh = (fw * br.height) / br.width
-    ctx.drawImage(tl, win.x - fw * 0.107, win.y - tlh * 0.097, fw, tlh)
-    ctx.drawImage(br, win.x + win.w - fw * 0.89, win.y + win.h - brh * 0.92, fw, brh)
+    ctx.drawImage(tl, win.x - FL_OVER, win.y - FL_OVER, fw, tlh)
+    ctx.drawImage(br, win.x + win.w + FL_OVER - fw, win.y + win.h + FL_OVER - brh, fw, brh)
   },
   mask() {
     const canvas = document.createElement('canvas')
@@ -193,6 +208,28 @@ const flourish: FrameStyle = {
 }
 
 const STYLES: Record<FilmContent['frame'], FrameStyle> = { hex, flourish }
+
+/** Where the film settles on screen: its frame spans the width less PAD each side, centred at Y. */
+const SCREEN = {
+  /** Side padding, as a fraction of the screen width (~20 px on a phone held upright). */
+  pad: 0.05,
+  /** Never taller than this fraction of the screen (phone held sideways). */
+  maxHeight: 0.8,
+  /** Vertical centre in NDC (−1 bottom … 1 top): a little high, clear of the shutter row. */
+  y: 0.12,
+  /** Seconds on the page before lifting off, and how long the lift takes. */
+  liftAt: 0.7,
+  liftFor: 0.9,
+}
+
+const easeInOutCubic = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2)
+
+/** World point at camera-space depth `depth` along the ray through (ndcX, ndcY), zoom included. */
+function screenPoint(camera: THREE.PerspectiveCamera, ndcX: number, ndcY: number, depth: number, out: THREE.Vector3) {
+  out.set(ndcX, ndcY, 0.5).unproject(camera).applyMatrix4(camera.matrixWorldInverse)
+  out.multiplyScalar(depth / -out.z)
+  return out.applyMatrix4(camera.matrixWorld)
+}
 
 export async function buildFilm(c: FilmContent, { page, assets, view }: BuildContext): Promise<ContentNode> {
   const style = STYLES[c.frame]
@@ -215,7 +252,8 @@ export async function buildFilm(c: FilmContent, { page, assets, view }: BuildCon
 
   const group = new THREE.Group()
   const [x, y] = page.point(c.at)
-  group.position.set(x, y, c.lift ?? 0.06)
+  const lift = c.lift ?? 0.06
+  group.position.set(x, y, lift)
 
   const width = page.len(c.width)
   const height = (width * CH) / CW
@@ -258,6 +296,60 @@ export async function buildFilm(c: FilmContent, { page, assets, view }: BuildCon
   )
   frame.position.z = 0.003
   group.add(frame)
+
+  // Scratch for the per-frame page → screen blend.
+  const { camera } = view
+  const box = style.box
+  const boxCentre = new THREE.Vector3(cx(box.x + box.w / 2), cy(box.y + box.h / 2), 0)
+  const onPage = { pos: new THREE.Vector3(), quat: new THREE.Quaternion(), scale: new THREE.Vector3() }
+  const onScreen = { pos: new THREE.Vector3(), quat: new THREE.Quaternion(), scale: new THREE.Vector3() }
+  const m = new THREE.Matrix4()
+  const anchorPos = new THREE.Vector3()
+  const left = new THREE.Vector3()
+  const right = new THREE.Vector3()
+  const top = new THREE.Vector3()
+  const bottom = new THREE.Vector3()
+
+  /** Pose the group `k` of the way (0 page … 1 screen), with `pop` as its intro scale on the page. */
+  function place(k: number, pop: number, time: number) {
+    const parent = group.parent
+    if (!parent) return
+    parent.updateWorldMatrix(true, false)
+    const bob = 0.006 * Math.sin(time * 1.3)
+    const sway = Math.sin(time * 0.7) * 0.006
+    m.compose(
+      new THREE.Vector3(x, y, lift + bob * pop),
+      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), sway * pop),
+      new THREE.Vector3(pop, pop, pop),
+    )
+    m.premultiply(parent.matrixWorld).decompose(onPage.pos, onPage.quat, onPage.scale)
+    if (k <= 0) {
+      group.position.set(x, y, lift + bob * pop)
+      group.rotation.set(0, 0, sway * pop)
+      group.scale.setScalar(pop)
+      return
+    }
+
+    // Screen spot: facing the camera, a little nearer than the page so it stays in front of it.
+    camera.updateMatrixWorld()
+    anchorPos.setFromMatrixPosition(parent.matrixWorld).applyMatrix4(camera.matrixWorldInverse)
+    const depth = Math.max(camera.near * 2, -anchorPos.z * 0.8)
+    const screenW = screenPoint(camera, -1, SCREEN.y, depth, left).distanceTo(screenPoint(camera, 1, SCREEN.y, depth, right))
+    const screenH = screenPoint(camera, 0, 1, depth, top).distanceTo(screenPoint(camera, 0, -1, depth, bottom))
+    const s = Math.min((screenW * (1 - 2 * SCREEN.pad)) / (box.w * px), (screenH * SCREEN.maxHeight) / (box.h * px))
+    camera.getWorldQuaternion(onScreen.quat)
+    onScreen.quat.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), sway * 0.4))
+    onScreen.scale.setScalar(s)
+    screenPoint(camera, 0, SCREEN.y, depth, onScreen.pos).sub(boxCentre.clone().multiplyScalar(s).applyQuaternion(onScreen.quat))
+
+    // Blend in world space, then express it in the anchor's space.
+    m.compose(
+      onPage.pos.lerp(onScreen.pos, k),
+      onPage.quat.slerp(onScreen.quat, k),
+      onPage.scale.lerp(onScreen.scale, k),
+    )
+    m.premultiply(new THREE.Matrix4().copy(parent.matrixWorld).invert()).decompose(group.position, group.quaternion, group.scale)
+  }
 
   let visible = false
   let watching = false
@@ -309,10 +401,9 @@ export async function buildFilm(c: FilmContent, { page, assets, view }: BuildCon
         videoMat.map = videoMap
         videoMat.needsUpdate = true
       }
-      const p = clamp01(intro(t, c.delay, 1.1))
-      group.scale.setScalar(Math.max(0.001, easeOutBack(p)))
-      group.position.z = (c.lift ?? 0.06) + 0.006 * Math.sin(time * 1.3) * p
-      group.rotation.z = Math.sin(time * 0.7) * 0.006 * p
+      const pop = Math.max(0.001, easeOutBack(clamp01(intro(t, c.delay, 1.1))))
+      const k = easeInOutCubic(intro(t, (c.delay ?? 0) + SCREEN.liftAt, SCREEN.liftFor))
+      place(k, pop, time)
     },
     onShow() {
       visible = true

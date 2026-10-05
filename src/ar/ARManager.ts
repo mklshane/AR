@@ -106,6 +106,7 @@ export class ARManager extends Emitter<AREvents> {
         this.setStatus(this.targets.anyVisible ? 'tracking' : 'scanning')
       },
       {
+        camera: this.camera,
         sampleCamera: (p) => this.sampleCamera(p),
         openCard: (c) => this.emit('card', { ...c, from: this.lastTap }),
         setFilm: (f) => this.emit('film', f),
