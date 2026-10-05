@@ -159,7 +159,12 @@ export class TargetManager {
       console.info(`[ar] timing build ${a.config.id} ${Math.round(performance.now() - t0)}ms`)
       a.scene = scene
       a.group.add(scene.root)
-      if (a.visible) scene.show()
+      // Built after the page was found (a lazy page): start its entrance now that there's something to show,
+      // rather than skipping it because the clock started at detection.
+      if (a.visible) {
+        a.timing.foundAt = Infinity
+        scene.show()
+      }
       if (failed.length) this.onEvent('contentError', { config: a.config, ids: failed })
     })
   }
@@ -167,6 +172,7 @@ export class TargetManager {
   tick(now: number, dt: number) {
     for (const a of this.anchors.values()) {
       if (!a.visible) continue
+      if (a.timing.foundAt === Infinity) a.timing.foundAt = now
       a.scene?.update({ t: now - a.timing.foundAt, dt, time: now })
     }
   }

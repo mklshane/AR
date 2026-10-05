@@ -77,7 +77,7 @@ const page15: TargetConfig = {
       src: '/videos/bees-ar-mobile.mp4',
       poster: '/ar/p15/poster.webp',
       title: 'Queen’s Honeybee Farm',
-      frame: 'hex',
+      frame: 'stamp',
       at: [540, 936],
       width: 960,
       lift: 0.055,

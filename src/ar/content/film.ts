@@ -34,96 +34,116 @@ async function loadFonts(...fonts: string[]) {
   await Promise.all(fonts.map((f) => document.fonts?.load(f).catch(() => undefined)))
 }
 
-// ---- p15 "hex": a pointy-ended hexagon like the spread's photo crops, white paper edge, honey keyline ----
+// ---- p15 "stamp": a postage stamp like p14's "The Pukyuties" one: perforated paper, the film as its picture ----
 
-const HEX_WIN: Rect = { x: 70, y: 40, w: 1060, h: 596 }
-const SLANT = HEX_WIN.h / 2 / Math.tan(Math.PI / 3) // 60° sides, as on the page
+const ST: Rect = { x: 40, y: 40, w: 1120, h: 800 } // the stamp paper
+const ST_WIN: Rect = { x: 84, y: 84, w: 1032, h: 580 } // the film (16:9)
+const ST_PERF = 13 // perforation radius
+const ST_PAPER = '#f4f0ea'
+const ST_INK = '#2e2418' // the page's dark brown type
+const HONEY = '#e2a72e'
 
-function hexPath(ctx: CanvasRenderingContext2D, { x, y, w, h }: Rect, grow = 0) {
-  const s = SLANT + grow * Math.tan(Math.PI / 6)
-  const [l, t, r, b] = [x - grow, y - grow, x + w + grow, y + h + grow]
+/** A little bee, like the page's silhouette but in colour: striped body, two glassy wings. */
+function bee(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, a: number) {
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.rotate(a)
+  ctx.scale(size / 100, size / 100)
+  ctx.shadowColor = 'rgba(46, 36, 24, 0.35)'
+  ctx.shadowBlur = 10
+  ctx.shadowOffsetY = 6
+  // Wings behind the body.
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'
+  ctx.strokeStyle = 'rgba(46, 36, 24, 0.5)'
+  ctx.lineWidth = 2.5
+  for (const side of [-1, 1]) {
+    ctx.beginPath()
+    ctx.ellipse(side * 26, -30, 22, 34, side * 0.5, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+  }
+  ctx.shadowColor = 'transparent'
+  // Body: honey with dark bands, clipped to its oval.
+  ctx.save()
   ctx.beginPath()
-  ctx.moveTo(l, (t + b) / 2)
-  ctx.lineTo(l + s, t)
-  ctx.lineTo(r - s, t)
-  ctx.lineTo(r, (t + b) / 2)
-  ctx.lineTo(r - s, b)
-  ctx.lineTo(l + s, b)
-  ctx.closePath()
+  ctx.ellipse(0, 6, 26, 40, 0, 0, Math.PI * 2)
+  ctx.clip()
+  ctx.fillStyle = HONEY
+  ctx.fillRect(-30, -40, 60, 90)
+  ctx.fillStyle = ST_INK
+  for (const by of [-6, 12, 30]) ctx.fillRect(-30, by, 60, 9)
+  ctx.restore()
+  ctx.lineWidth = 3
+  ctx.strokeStyle = ST_INK
+  ctx.beginPath()
+  ctx.ellipse(0, 6, 26, 40, 0, 0, Math.PI * 2)
+  ctx.stroke()
+  // Head and antennae.
+  ctx.fillStyle = ST_INK
+  ctx.beginPath()
+  ctx.arc(0, -38, 15, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.moveTo(-5, -50)
+  ctx.quadraticCurveTo(-14, -70, -22, -72)
+  ctx.moveTo(5, -50)
+  ctx.quadraticCurveTo(14, -70, 22, -72)
+  ctx.stroke()
+  ctx.restore()
 }
 
-const hex: FrameStyle = {
-  size: [1200, 860],
-  win: HEX_WIN,
-  box: { x: 52, y: 22, w: 1096, h: 738 },
+const stamp: FrameStyle = {
+  size: [1200, 900],
+  win: ST_WIN,
+  box: { x: 24, y: 10, w: 1160, h: 850 },
   async draw(ctx, c, duration) {
-    const INK = '#2e2418'
-    const HONEY = '#e2a72e'
-    const PAPER = '#ffffff'
-    const BORDER = 18
-    const win = HEX_WIN
-    await loadFonts('600 30px Montserrat', '500 30px Montserrat')
-
-    // White paper border with a soft shadow, as if this photo panel had lifted off the page.
+    await loadFonts('800 52px Montserrat', '600 28px Montserrat')
+    // The stamp paper, perforated: a rectangle with half-circle bites all round, and a soft shadow.
     ctx.save()
     ctx.shadowColor = 'rgba(46, 36, 24, 0.35)'
-    ctx.shadowBlur = 36
-    ctx.shadowOffsetY = 18
-    hexPath(ctx, win, BORDER)
-    ctx.fillStyle = PAPER
-    ctx.fill()
+    ctx.shadowBlur = 30
+    ctx.shadowOffsetY = 14
+    ctx.fillStyle = ST_PAPER
+    ctx.fillRect(ST.x, ST.y, ST.w, ST.h)
     ctx.restore()
-
-    // Caption tab, tucked under the bottom-left of the panel, with one slanted end like the hexagons.
-    const tab = { x: win.x + SLANT * 0.55, y: win.y + win.h + BORDER - 6, w: 470, h: 112 }
-    ctx.save()
-    ctx.shadowColor = 'rgba(46, 36, 24, 0.25)'
-    ctx.shadowBlur = 20
-    ctx.shadowOffsetY = 10
-    ctx.beginPath()
-    ctx.moveTo(tab.x, tab.y)
-    ctx.lineTo(tab.x + tab.w, tab.y)
-    ctx.lineTo(tab.x + tab.w - 34, tab.y + tab.h)
-    ctx.lineTo(tab.x, tab.y + tab.h)
-    ctx.closePath()
-    ctx.fillStyle = PAPER
-    ctx.fill()
-    ctx.restore()
-    hexPath(ctx, win, BORDER) // re-cover the tab's shadow where it overlaps the panel
-    ctx.fillStyle = PAPER
-    ctx.fill()
-
-    // Punch out the film window and edge it with a honey keyline.
     ctx.globalCompositeOperation = 'destination-out'
-    hexPath(ctx, win)
-    ctx.fill()
+    const step = ST_PERF * 2.7
+    const holes = (x0: number, y0: number, len: number, horizontal: boolean) => {
+      const n = Math.round(len / step)
+      for (let i = 0; i <= n; i++) {
+        ctx.beginPath()
+        ctx.arc(horizontal ? x0 + (i * len) / n : x0, horizontal ? y0 : y0 + (i * len) / n, ST_PERF, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+    holes(ST.x, ST.y, ST.w, true)
+    holes(ST.x, ST.y + ST.h, ST.w, true)
+    holes(ST.x, ST.y, ST.h, false)
+    holes(ST.x + ST.w, ST.y, ST.h, false)
+    // The picture window.
+    ctx.fillRect(ST_WIN.x, ST_WIN.y, ST_WIN.w, ST_WIN.h)
     ctx.globalCompositeOperation = 'source-over'
-    hexPath(ctx, win, 3)
-    ctx.lineWidth = 6
+    // A fine honey keyline round the picture, and the stamp's printed text below it.
     ctx.strokeStyle = HONEY
-    ctx.stroke()
-
-    ctx.fillStyle = HONEY
-    ctx.font = '600 25px Montserrat, system-ui, sans-serif'
-    ctx.letterSpacing = '3px'
-    ctx.fillText(c.title.toUpperCase(), tab.x + 30, tab.y + 50)
+    ctx.lineWidth = 5
+    ctx.strokeRect(ST_WIN.x - 9, ST_WIN.y - 9, ST_WIN.w + 18, ST_WIN.h + 18)
+    ctx.fillStyle = ST_INK
+    ctx.font = '800 52px Montserrat, system-ui, sans-serif'
+    ctx.fillText(c.title, ST_WIN.x, ST_WIN.y + ST_WIN.h + 84)
+    ctx.fillStyle = '#9a6a12'
+    ctx.font = '600 28px Montserrat, system-ui, sans-serif'
+    ctx.letterSpacing = '4px'
+    ctx.fillText([c.subtitle, 'Docufilm', runtime(duration)].filter(Boolean).join(' · ').toUpperCase(), ST_WIN.x + 2, ST_WIN.y + ST_WIN.h + 130)
     ctx.letterSpacing = '0px'
-    ctx.fillStyle = INK
-    ctx.font = '500 30px Montserrat, system-ui, sans-serif'
-    ctx.fillText(`Docufilm · ${runtime(duration)}`, tab.x + 30, tab.y + 90)
-  },
-  mask() {
-    const canvas = document.createElement('canvas')
-    canvas.width = 512
-    canvas.height = Math.round((512 * HEX_WIN.h) / HEX_WIN.w)
-    const ctx = canvas.getContext('2d')!
-    ctx.fillStyle = '#000'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.scale(canvas.width / HEX_WIN.w, canvas.height / HEX_WIN.h)
-    hexPath(ctx, { x: 0, y: 0, w: HEX_WIN.w, h: HEX_WIN.h }, 4) // a touch larger, tucked under the keyline
-    ctx.fillStyle = '#fff'
-    ctx.fill()
-    return canvas
+    // A "value" in the corner, as stamps have.
+    ctx.textAlign = 'right'
+    ctx.fillStyle = HONEY
+    ctx.font = '800 52px Montserrat, system-ui, sans-serif'
+    ctx.fillText('₱15', ST_WIN.x + ST_WIN.w, ST_WIN.y + ST_WIN.h + 84)
+    ctx.textAlign = 'left'
+
+    // And a bee that has landed on the top-right corner.
+    bee(ctx, ST.x + ST.w - 40, ST.y + 36, 118, 0.5)
   },
 }
 
@@ -451,7 +471,7 @@ const script: FrameStyle = {
   },
 }
 
-const STYLES: Record<FilmContent['frame'], FrameStyle> = { hex, flourish, script }
+const STYLES: Record<FilmContent['frame'], FrameStyle> = { stamp, flourish, script }
 
 /** Where the film settles on screen: its frame spans the width less PAD each side, centred at Y. */
 const SCREEN = {
@@ -461,12 +481,14 @@ const SCREEN = {
   maxHeight: 0.8,
   /** Vertical centre in NDC (−1 bottom … 1 top): a little high, clear of the shutter row. */
   y: 0.12,
-  /** Seconds on the page before lifting off, and how long the lift takes. */
-  liftAt: 0.7,
-  liftFor: 0.9,
+  /** The entrance: it pops up on the page (`pop` s), and part-way through peels off it (`liftAt`) and
+   *  flies to the screen (`liftFor` s), so the whole thing takes about a second. */
+  pop: 0.45,
+  liftAt: 0.22,
+  liftFor: 0.75,
 }
 
-const easeInOutCubic = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2)
+const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3)
 
 /** World point at camera-space depth `depth` along the ray through (ndcX, ndcY), zoom included. */
 function screenPoint(camera: THREE.PerspectiveCamera, ndcX: number, ndcY: number, depth: number, out: THREE.Vector3) {
@@ -554,6 +576,8 @@ export async function buildFilm(c: FilmContent, { page, assets, view }: BuildCon
   const top = new THREE.Vector3()
   const bottom = new THREE.Vector3()
 
+  const peel = new THREE.Quaternion()
+
   /** Pose the group `k` of the way (0 page … 1 screen), with `pop` as its intro scale on the page. */
   function place(k: number, pop: number, time: number) {
     const parent = group.parent
@@ -586,11 +610,14 @@ export async function buildFilm(c: FilmContent, { page, assets, view }: BuildCon
     onScreen.scale.setScalar(s)
     screenPoint(camera, 0, SCREEN.y, depth, onScreen.pos).sub(boxCentre.clone().multiplyScalar(s).applyQuaternion(onScreen.quat))
 
-    // Blend in world space, then express it in the anchor's space.
+    // Blend in world space, then express it in the anchor's space. On the way it peels off the page: the
+    // top edge tips towards the viewer and it swells a touch, like a card flicked up off the paper.
+    const arc = Math.sin(Math.PI * k)
+    peel.setFromEuler(new THREE.Euler(-0.6 * arc, 0, 0.1 * arc))
     m.compose(
       onPage.pos.lerp(onScreen.pos, k),
-      onPage.quat.slerp(onScreen.quat, k),
-      onPage.scale.lerp(onScreen.scale, k),
+      onPage.quat.slerp(onScreen.quat, k).multiply(peel),
+      onPage.scale.lerp(onScreen.scale, k).multiplyScalar(1 + 0.08 * arc),
     )
     m.premultiply(new THREE.Matrix4().copy(parent.matrixWorld).invert()).decompose(group.position, group.quaternion, group.scale)
   }
@@ -641,12 +668,13 @@ export async function buildFilm(c: FilmContent, { page, assets, view }: BuildCon
   return {
     object: group,
     update({ t, time }) {
-      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && videoMat.map !== videoMap) {
+      // Swap the poster for the film once it's really playing (a decoded frame), never a black first frame.
+      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.currentTime > 0.05 && videoMat.map !== videoMap) {
         videoMat.map = videoMap
         videoMat.needsUpdate = true
       }
-      const pop = Math.max(0.001, easeOutBack(clamp01(intro(t, c.delay, 1.1))))
-      const k = easeInOutCubic(intro(t, (c.delay ?? 0) + SCREEN.liftAt, SCREEN.liftFor))
+      const pop = Math.max(0.001, easeOutBack(clamp01(intro(t, c.delay, SCREEN.pop))))
+      const k = easeOutCubic(intro(t, (c.delay ?? 0) + SCREEN.liftAt, SCREEN.liftFor))
       place(k, pop, time)
     },
     onShow() {
