@@ -199,18 +199,19 @@ const page40: TargetConfig = {
   image: '/magazine/p40.webp',
   size: [1080, 1485],
   prefetch: false,
+  // Tall layered scene: hold it steadier than the default (see TargetConfig.poseFilter).
+  poseFilter: { minCutoff: 0.18, beta: 1.2 },
   content: [
     {
       type: 'model',
       id: 'magwai-sunscreen',
       asset: '/models/magwai-sunscreen.glb',
       // Nearly flat and centred on the page, so the layered reef cards face a phone looking down at it and
-      // pop up towards it (their layers spread 2.2× for depth).
+      // pop up towards it (their layers spread 1.5× for depth; more and the tall reef magnified tracking jitter).
       hide: ['Cube.006'], // a leftover shampoo box from the shared scene
       at: [540, 1430],
       width: 760,
-      depth: 2.2,
-      sway: true,
+      depth: 1.5,
       scale: 1,
       stand: 12,
     },
@@ -225,6 +226,8 @@ const page41: TargetConfig = {
   image: '/magazine/p41.webp',
   size: [1080, 1485],
   prefetch: false,
+  // Tall layered scene: hold it steadier than the default (see TargetConfig.poseFilter).
+  poseFilter: { minCutoff: 0.18, beta: 1.2 },
   content: [
     {
       type: 'model',
@@ -233,8 +236,7 @@ const page41: TargetConfig = {
       hide: ['cap.001'], // the sunscreen tube belongs to p40
       at: [540, 1430],
       width: 760,
-      depth: 2.2,
-      sway: true,
+      depth: 1.5,
       scale: 1,
       stand: 12,
     },

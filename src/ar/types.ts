@@ -270,6 +270,11 @@ export interface TargetConfig {
   group?: string
   /** Burst of particles where the user taps. */
   tapBurst?: { colors: string[] }
+  /**
+   * Pose smoothing for this page, over the app's defaults: e.g. a lower `minCutoff` holds tall content
+   * steadier (its far end magnifies tracking jitter), at the cost of a little lag when the page moves.
+   */
+  poseFilter?: { minCutoff?: number; beta?: number }
 }
 
 export interface ExperienceConfig {

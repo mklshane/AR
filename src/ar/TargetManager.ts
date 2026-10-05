@@ -82,7 +82,7 @@ export class TargetManager {
         group,
         postMatrix,
         rawPose: new THREE.Matrix4(),
-        filter: this.smoothing ? new PoseFilter(this.poseFilter) : null,
+        filter: this.smoothing ? new PoseFilter({ ...this.poseFilter, ...config.poseFilter }) : null,
         visible: false,
         timing: this.timingFor(config),
       })
