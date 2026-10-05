@@ -1,17 +1,22 @@
 @import 'tailwindcss';
 
 @theme {
-  --font-script: 'Yesteryear', cursive;
-  --font-display: 'Young Serif', Georgia, serif;
-  --font-sans: 'DM Sans', system-ui, sans-serif;
-  --color-paper: #f6ead3;
-  --color-banig: #d9a55b;
-  --color-sea: #2f8f9d;
-  --color-leaf: #2f6b3a;
-  --color-mango: #f2b632;
-  --color-sili: #d8452b;
-  --color-gumamela: #e8578a;
-  --color-kape: #3a2418;
+  --font-script: 'Miss Fajardose', cursive;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Montserrat', system-ui, sans-serif;
+  --color-paper: #f4efe3;
+  --color-forest: #354f24;
+  --color-olive: #46472b;
+  --color-ink: #1f2a17;
+  --color-lime: #c9d84a;
+  --color-jade: #2fa36f;
+  --color-coral: #ef9480;
+  --color-gold: #e8b83a;
+  /* Sampled from the cover illustration. */
+  --color-blush: #dcae99;
+  --color-path: #fee87a;
+  --color-sea: #5b98b2;
+  --color-sea-deep: #3d6f86;
 }
 
 html,
@@ -19,7 +24,7 @@ body,
 #root {
   height: 100%;
   margin: 0;
-  background: var(--color-kape);
+  background: var(--color-forest);
   color: var(--color-paper);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -39,91 +44,55 @@ body,
   touch-action: none;
 }
 
-/* Woven straw mat, after the banig weave: two crossing strand directions over a straw base. */
-.banig {
-  background-color: var(--color-banig);
-  background-image:
-    repeating-linear-gradient(45deg, rgb(120 72 24 / 0.22) 0 5px, transparent 5px 10px),
-    repeating-linear-gradient(-45deg, rgb(255 236 196 / 0.28) 0 5px, transparent 5px 10px);
+/* Leaf spinner: a slow rock while loading. */
+@keyframes rock {
+  0%, 100% { transform: rotate(-14deg); }
+  50% { transform: rotate(14deg); }
 }
-
-/* Banderitas: a string of paper flags, tiled across the top of the page. */
-.bunting {
-  height: 38px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='190' height='38'%3E%3Cpath d='M0 4 Q95 12 190 4' fill='none' stroke='%233a2418' stroke-width='1.2'/%3E%3Cpath d='M4 5 L34 7 L18 34Z' fill='%23d8452b'/%3E%3Cpath d='M42 7.5 L72 9 L58 35Z' fill='%23f2b632'/%3E%3Cpath d='M80 9 L110 9 L94 36Z' fill='%232f8f9d'/%3E%3Cpath d='M118 9 L148 7.5 L131 35Z' fill='%23e8578a'/%3E%3Cpath d='M156 7 L186 5 L171 33Z' fill='%232f6b3a'/%3E%3C/svg%3E") repeat-x left top / 190px 38px;
-}
-
-@keyframes scan-sweep {
-  0% { transform: translateY(0); opacity: 0; }
-  12% { opacity: 1; }
-  88% { opacity: 1; }
-  100% { transform: translateY(var(--sweep)); opacity: 0; }
-}
-.scan-line {
-  animation: scan-sweep 3s ease-in-out infinite;
-}
-
-@keyframes pop-in {
-  0% { transform: translateY(8px) scale(0.92); opacity: 0; }
-  100% { transform: none; opacity: 1; }
-}
-.pop-in {
-  animation: pop-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
-}
-
-/* Scene motion: leaves sway from their base, sun rays turn, smoke drifts. */
-@keyframes sway {
-  0%, 100% { transform: rotate(-1.5deg); }
-  50% { transform: rotate(2deg); }
-}
-.sway {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  animation: sway 6s ease-in-out infinite;
-}
-@keyframes turn {
-  to { transform: rotate(360deg); }
-}
-.turn {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: turn 60s linear infinite;
-}
-@keyframes drift {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(6px); }
-}
-.drift {
-  animation: drift 9s ease-in-out infinite;
-}
-
-
-/* Loading sun spins at a speed you can see. */
-.sun-loading .turn {
-  animation-duration: 2.4s;
-}
-
-/* Background stencils move much less than the scene. */
-@keyframes sway-soft {
-  0%, 100% { transform: rotate(-1deg); }
-  50% { transform: rotate(1.5deg); }
-}
-.sway-soft {
+.rock {
   transform-origin: 50% 90%;
-  animation: sway-soft 11s ease-in-out infinite;
+  animation: rock 1.4s ease-in-out infinite;
 }
 
-/* Fine print grain over the paper, so flat colour doesn't look like a screen fill. */
-.paper-grain::after {
+/* The cover's sea, continued below the illustration, with the same speckled print grain. */
+.cover-sea {
+  background: linear-gradient(180deg, var(--color-sea) 0%, #4f8aa4 45%, var(--color-sea-deep) 100%);
+}
+.cover-grain::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.35;
-  mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.3 0 0 0 0 0.15 0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.55;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 -0.35'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* The cover's coral sky, for the wide-screen layout. */
+.cover-sky {
+  background: linear-gradient(180deg, var(--color-blush) 0%, var(--color-coral) 38%, #e98a7a 62%, #e9a589 100%);
+}
+/* Feather the bottom of the illustration into the sea. */
+.cover-fade {
+  mask-image: linear-gradient(180deg, #000 78%, transparent 100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan-line, .pop-in, .rock { animation: none; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .scan-line, .pop-in, .sway, .sway-soft, .turn, .drift { animation: none; }
+/* Flip-through magazine (page-flip). Its own stylesheet is injected at runtime, hence the extra specificity. */
+.magazine .stf__parent { touch-action: none; }
+.magazine-page { background: var(--color-paper); box-shadow: 0 14px 28px -10px rgb(0 0 0 / 0.5); }
+.magazine-page img { display: block; width: 100%; height: 100%; object-fit: cover; user-select: none; -webkit-user-select: none; pointer-events: none; }
+/* Spine shading down the fold of an open spread. */
+.magazine .--landscape .stf__block::after {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 8%; transform: translateX(-50%);
+  z-index: 1000; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgb(0 0 0 / 0.12) 45%, rgb(0 0 0 / 0.18) 50%, rgb(0 0 0 / 0.12) 55%, transparent);
 }
+
+/* The magazine lies on the forest-green endpaper; darken toward the edges so the pages carry the colour. */
+.magazine-table {
+  background: radial-gradient(ellipse 80% 70% at 50% 45%, #3f5d2b, var(--color-forest) 55%, #24371a);
+}
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

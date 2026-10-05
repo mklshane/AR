@@ -36,7 +36,7 @@ export function TrackingHud({ manager }: { manager: () => ARManager | null }) {
   }, [manager])
 
   return (
-    <pre className="pointer-events-none absolute top-[max(4rem,env(safe-area-inset-top))] left-3 z-30 rounded-lg bg-black/60 px-2.5 py-1.5 font-mono text-[11px] leading-snug text-mango">
+    <pre className="pointer-events-none absolute top-[max(4rem,env(safe-area-inset-top))] left-3 z-30 rounded-lg bg-black/60 px-2.5 py-1.5 font-mono text-[11px] leading-snug text-lime">
       {text}
     </pre>
   )

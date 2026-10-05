@@ -6,7 +6,7 @@ import { ErrorScreen } from './ErrorScreen'
 import { LoadingScreen } from './LoadingScreen'
 import { PhotoSheet } from './PhotoSheet'
 import { ScanOverlay } from './ScanOverlay'
-import { Sun } from './Sun'
+import { Leaf } from './Leaf'
 import { TrackingHud } from './TrackingHud'
 
 // Field-testing switches (work on deployed builds): ?hud, ?res=1080, ?pf=…
@@ -84,15 +84,15 @@ export function CameraUI({ config, debug, smoothing, onExit }: Props) {
   const ready = status === 'scanning' || status === 'tracking'
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-kape select-none">
+    <div className="fixed inset-0 overflow-hidden bg-ink select-none">
       <div ref={containerRef} key={attempt} className="absolute inset-0" />
 
       {status === 'loading' && !error && !cameraReady && <LoadingScreen step={step} />}
       {status === 'loading' && !error && cameraReady && <ScanOverlay lost={false} preparing={step} />}
       {status === 'scanning' && <ScanOverlay lost={everFound} />}
       {toast && status === 'tracking' && (
-        <div className="pop-in pointer-events-none absolute top-[max(1.25rem,env(safe-area-inset-top))] left-1/2 z-20 flex -translate-x-1/2 -rotate-2 items-center gap-2 rounded-md bg-paper py-1.5 pr-4 pl-2 font-display text-lg text-kape shadow-[0_3px_0_rgb(58_36_24/0.35)]">
-          <Sun still className="h-7 w-7" />
+        <div className="pop-in pointer-events-none absolute top-[max(1.25rem,env(safe-area-inset-top))] left-1/2 z-20 flex -translate-x-1/2 -rotate-2 items-center gap-2 rounded-full bg-paper py-1.5 pr-4 pl-2.5 font-display text-lg text-forest shadow-[0_6px_16px_-6px_rgb(0_0_0/0.45)]">
+          <Leaf still className="h-6 w-6" />
           {toast}
         </div>
       )}

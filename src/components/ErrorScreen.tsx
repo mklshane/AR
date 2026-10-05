@@ -1,4 +1,4 @@
-import { Sun } from './Sun'
+import { Leaf } from './Leaf'
 import type { ARErrorCode } from '../ar/ARManager'
 
 const MESSAGES: Record<ARErrorCode, { title: string; body: string; retry: boolean }> = {
@@ -22,18 +22,18 @@ interface Props {
 export function ErrorScreen({ code, onRetry, onBack }: Props) {
   const m = MESSAGES[code]
   return (
-    <div role="alert" className="absolute inset-0 z-30 flex items-center justify-center bg-kape px-4">
-      <div className="w-full max-w-sm rounded-xl bg-paper px-6 pt-7 pb-6 text-center text-kape">
-        <Sun still className="mx-auto h-12 w-12 opacity-90 grayscale-[0.4]" />
+    <div role="alert" className="absolute inset-0 z-30 flex items-center justify-center bg-forest px-4">
+      <div className="w-full max-w-sm rounded-2xl bg-paper px-6 pt-7 pb-6 text-center text-ink">
+        <Leaf still className="mx-auto h-11 w-11" />
         <h2 className="mt-4 font-display text-[22px] leading-tight">{m.title}</h2>
-        <p className="mt-2 text-[15px] leading-snug text-kape/75">{m.body}</p>
+        <p className="mt-2 text-[15px] leading-snug text-ink/75">{m.body}</p>
         <div className="mt-6 flex flex-col gap-2.5">
           {m.retry && (
-            <button onClick={onRetry} className="rounded-xl bg-sili py-3.5 font-display text-lg text-paper shadow-[0_3px_0_var(--color-kape)] active:translate-y-[2px] active:shadow-[0_1px_0_var(--color-kape)]">
+            <button onClick={onRetry} className="rounded-full bg-forest py-3.5 text-[14px] font-semibold tracking-[0.12em] text-paper uppercase active:scale-[0.98]">
               Try again
             </button>
           )}
-          <button onClick={onBack} className="rounded-xl border-2 border-kape/25 py-3 font-display text-lg">
+          <button onClick={onBack} className="rounded-full border border-forest/30 py-3 text-[14px] font-semibold tracking-[0.12em] text-forest uppercase">
             Back
           </button>
         </div>

@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Source print files (large; exported to public/ by scripts/export-magazine.sh)
+design/*.pdf
