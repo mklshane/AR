@@ -63,6 +63,15 @@ export interface ContentNode {
   update(tick: Tick): void
   /** Called when the user taps this node's object; `hit` says which mesh. */
   onTap?(hit: THREE.Intersection): void
+  /**
+   * A finger went down on this node's object. Return true to take the gesture as a drag: the view
+   * then sends the finger's page-plane point (page space, z = 0) to onDragMove until onDragEnd,
+   * and doesn't pan, pinch or tap meanwhile.
+   */
+  onDragStart?(hit: THREE.Intersection, at: THREE.Vector3): boolean
+  onDragMove?(at: THREE.Vector3): void
+  /** The finger lifted (or the gesture was cancelled, or the page was lost: `at` is null). */
+  onDragEnd?(at: THREE.Vector3 | null): void
   /** Called when the target is found again (replay intro, resume media). */
   onShow?(): void
   /** Called when the target is lost (pause media). */

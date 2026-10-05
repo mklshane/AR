@@ -56,6 +56,13 @@ export class TargetScene {
     this.burst?.update(tick.dt)
   }
 
+  /** The content node (if any) that owns a ray hit. */
+  nodeOf(hit: THREE.Intersection): ContentNode | null {
+    let o: THREE.Object3D | null = hit.object
+    while (o && !o.userData.node) o = o.parent
+    return (o?.userData.node as ContentNode | undefined) ?? null
+  }
+
   /** Handle a tap ray hit on this target's content (or on the page plane). */
   tap(hit: THREE.Intersection | null, pagePoint: THREE.Vector3 | null) {
     let o: THREE.Object3D | null = hit?.object ?? null

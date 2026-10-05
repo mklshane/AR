@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import type { AssetManager } from './AssetManager'
 import { DEFAULT_POSE_FILTER, PoseFilter, type PoseFilterOptions } from './PoseFilter'
 import type { TargetConfig } from './types'
-import type { ViewServices } from './content/ContentNode'
+import type { ContentNode, ViewServices } from './content/ContentNode'
 import { TargetScene } from '../scenes/TargetScene'
 
 /** Re-detections within this many seconds don't replay the intro animation (avoids flicker restarts). */
@@ -177,16 +177,60 @@ export class TargetManager {
       if (!a.visible || !a.scene) continue
       a.group.updateMatrixWorld(true)
       const hit = raycaster.intersectObjects(a.scene.tappables, true)[0] ?? null
-      let pagePoint: THREE.Vector3 | null = null
-      if (!hit) {
-        const normal = new THREE.Vector3(0, 0, 1).transformDirection(a.group.matrixWorld)
-        const origin = new THREE.Vector3().setFromMatrixPosition(a.group.matrixWorld)
-        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, origin)
-        const p = raycaster.ray.intersectPlane(plane, new THREE.Vector3())
-        if (p) pagePoint = a.scene.root.worldToLocal(p)
-      }
-      a.scene.tap(hit, pagePoint)
+      a.scene.tap(hit, hit ? null : this.pagePoint(a, raycaster))
     }
+  }
+
+  /** Where a ray meets a target's page plane, in that target's page space (null if it misses). */
+  private pagePoint(a: Anchor, raycaster: THREE.Raycaster): THREE.Vector3 | null {
+    if (!a.scene) return null
+    const normal = new THREE.Vector3(0, 0, 1).transformDirection(a.group.matrixWorld)
+    const origin = new THREE.Vector3().setFromMatrixPosition(a.group.matrixWorld)
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, origin)
+    const p = raycaster.ray.intersectPlane(plane, new THREE.Vector3())
+    if (!p) return null
+    const local = a.scene.root.worldToLocal(p)
+    local.z = 0
+    return local
+  }
+
+  private drag: { anchor: Anchor; node: ContentNode } | null = null
+
+  /** Offer a finger-down to draggable content; true if some node took it as a drag. */
+  dragStart(raycaster: THREE.Raycaster): boolean {
+    for (const a of this.anchors.values()) {
+      if (!a.visible || !a.scene) continue
+      a.group.updateMatrixWorld(true)
+      const hit = raycaster.intersectObjects(a.scene.tappables, true)[0]
+      const node = hit && a.scene.nodeOf(hit)
+      const at = this.pagePoint(a, raycaster)
+      if (node?.onDragStart && at && node.onDragStart(hit, at)) {
+        this.drag = { anchor: a, node }
+        return true
+      }
+    }
+    return false
+  }
+
+  dragMove(raycaster: THREE.Raycaster) {
+    if (!this.drag) return
+    const { anchor, node } = this.drag
+    if (!anchor.visible) return // hold still until the page is back (or the finger lifts)
+    anchor.group.updateMatrixWorld(true)
+    const at = this.pagePoint(anchor, raycaster)
+    if (at) node.onDragMove?.(at)
+  }
+
+  dragEnd(raycaster: THREE.Raycaster | null) {
+    if (!this.drag) return
+    const { anchor, node } = this.drag
+    this.drag = null
+    const at = raycaster && anchor.visible ? this.pagePoint(anchor, raycaster) : null
+    node.onDragEnd?.(at)
+  }
+
+  get dragging() {
+    return this.drag !== null
   }
 
   /** Dev/test hook: raw vs displayed pose of each visible target. */

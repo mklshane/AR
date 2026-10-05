@@ -319,6 +319,11 @@ export class ARManager extends Emitter<AREvents> {
     if ((e.target as HTMLElement).closest('button, a')) return
     if (this.pointers.size === 0) this.gestured = false
     this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (this.targets.dragging) return // one finger at a time while carrying something
+    if (this.pointers.size === 1 && this.targets.dragStart(this.rayAt(e.clientX, e.clientY))) {
+      this.gestured = true // a drag, never a tap
+      return
+    }
     if (this.pointers.size === 2) this.beginPinch()
     else if (this.pointers.size === 1) {
       const { x, y } = this.zoomState
@@ -329,6 +334,10 @@ export class ARManager extends Emitter<AREvents> {
   private onPointerMove = (e: PointerEvent) => {
     if (!this.pointers.has(e.pointerId)) return
     this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (this.targets.dragging) {
+      this.targets.dragMove(this.rayAt(e.clientX, e.clientY))
+      return
+    }
     if (this.gesture && this.pointers.size >= 2) {
       const [a, b] = [...this.pointers.values()]
       const dist = Math.hypot(a.x - b.x, a.y - b.y)
@@ -349,6 +358,10 @@ export class ARManager extends Emitter<AREvents> {
 
   private onPointerUp = (e: PointerEvent) => {
     if (!this.pointers.delete(e.pointerId)) return
+    if (this.targets.dragging) {
+      if (this.pointers.size === 0) this.targets.dragEnd(e.type === 'pointerup' ? this.rayAt(e.clientX, e.clientY) : null)
+      return
+    }
     if (this.pointers.size === 1) {
       // One finger left after a pinch: carry on as a pan from here.
       const [p] = [...this.pointers.values()]
@@ -413,10 +426,15 @@ export class ARManager extends Emitter<AREvents> {
 
   private tapAt(clientX: number, clientY: number) {
     this.lastTap = { x: clientX, y: clientY }
+    this.targets.tap(this.rayAt(clientX, clientY))
+  }
+
+  /** The camera ray through a screen point (zoom included). */
+  private rayAt(clientX: number, clientY: number) {
     const rect = this.container.getBoundingClientRect()
     const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1)
     this.raycaster.setFromCamera(ndc, this.camera)
-    this.targets.tap(this.raycaster)
+    return this.raycaster
   }
 
   private envMap?: THREE.Texture

@@ -121,6 +121,33 @@ export interface ModelContent extends Placed {
   animation?: string
 }
 
+/** One cut-out garment of a paper doll. Positions are target-image pixels (centres). */
+export interface PaperDollPiece {
+  id: string
+  /** Transparent cut-out, cropped to the piece. */
+  src: string
+  /** Where it's printed on the page, and its printed width. */
+  home: Px
+  width: number
+  /** Where its centre sits when worn, and its scale there (pieces are cut close to the doll's size). */
+  worn: Px
+  wornScale: number
+  /** One piece per slot: a new outfit replaces the current one. Shoes stay on once worn. */
+  slot: 'outfit' | 'shoes'
+}
+
+/** p39's paper doll: drag (or tap) the printed clothes onto the doll (see content/paperDoll.ts). */
+export interface PaperDollContent {
+  type: 'paper-doll'
+  id: string
+  /** The page art without its clothes, covering the printed page. */
+  cover: string
+  /** Drop zone over the doll: [x, y, w, h] in target-image pixels. */
+  body: [x: number, y: number, w: number, h: number]
+  pieces: PaperDollPiece[]
+  lift?: number
+}
+
 /** p34's ice cream tub: tap to open it and find a fish instead (see content/tub.ts). */
 export interface TubContent extends Placed {
   type: 'tub'
@@ -170,6 +197,7 @@ export type ContentItem =
   | FilmContent
   | ModelContent
   | TubContent
+  | PaperDollContent
   | TimelineContent
   | AlphaVideoContent
   | AudioContent

@@ -162,7 +162,33 @@ const page34: TargetConfig = {
   content: [{ type: 'tub', id: 'ice-cream-tub', asset: '/models/ice-cream-tub.glb', at: [518, 802], length: 680 }],
 }
 
+/** p39 "The Thrift-Up Doll": drag the printed clothes onto the paper doll. */
+const page39: TargetConfig = {
+  id: 'page39',
+  targetIndex: 7,
+  title: 'The Thrift-Up Doll',
+  image: '/magazine/p39.webp',
+  size: [1080, 1485],
+  content: [
+    {
+      type: 'paper-doll',
+      id: 'thrift-up-doll',
+      cover: '/ar/p39/page.webp',
+      // The doll's cut-out, generously: dropping anywhere on her counts.
+      body: [60, 260, 310, 1200],
+      // Worn positions and scales were fitted by overlaying each piece on the doll.
+      pieces: [
+        { id: 'vest', src: '/ar/p39/vest.webp', home: [540, 530], width: 227, worn: [219, 697], wornScale: 0.98, slot: 'outfit' },
+        { id: 'leopard', src: '/ar/p39/halfbody.webp', home: [541, 917], width: 285, worn: [219, 726], wornScale: 0.94, slot: 'outfit' },
+        { id: 'pink', src: '/ar/p39/pink.webp', home: [872, 654], width: 289, worn: [219, 857], wornScale: 1.12, slot: 'outfit' },
+        { id: 'denim', src: '/ar/p39/denim.webp', home: [870, 1199], width: 353, worn: [221, 689], wornScale: 1.0, slot: 'outfit' },
+        { id: 'shoes', src: '/ar/p39/shoes.webp', home: [520, 1281], width: 223, worn: [201, 1350], wornScale: 0.66, slot: 'shoes' },
+      ],
+    },
+  ],
+}
+
 export const experience: ExperienceConfig = {
   mindFile: '/targets/targets.mind',
-  targets: [page13, page15, page13Closeup, page22, page24, page30, page34],
+  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39],
 }
