@@ -126,16 +126,17 @@ export async function buildPangat(c: PangatContent, { page, assets, view, target
   const P = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z).add(model.position) // model → pan space
   const centre = (y: number) => P(body.x, y, body.z)
 
-  // ---- Flames licking up around and behind the pan (it hides their middle, as in the photo) ----
+  // ---- Flames in a ring round the pan's base, at page level: the back ones show past its sides, the front
+  // ones lick its bottom (the pan's depth hides whatever's behind it, as in the photo) ----
   const flameMap = flameTexture()
   const flames = Array.from({ length: 7 }, (_, i) => {
     const mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(1, 2).translate(0, 1, 0), // pivot at the base
       new THREE.MeshBasicMaterial({ map: flameMap, transparent: true, depthWrite: false, opacity: 0, toneMapped: false }),
     )
-    const k = i / 6 - 0.5
-    mesh.position.copy(centre(body.y0 + 0.1)).add(new THREE.Vector3(k * body.r * 2.6, 0, -body.r * 1.1))
-    mesh.renderOrder = -1 // before the pan, so the pan always sits in front
+    const a = Math.PI * (i / 6) // round the base, left to right
+    const front = i % 2 === 1
+    mesh.position.copy(centre(body.y0 + 0.05)).add(new THREE.Vector3(-Math.cos(a) * body.r * 1.05, 0, (front ? 0.55 : -0.35) * body.r * Math.sin(a) + (front ? 0.2 : 0) * body.r))
     holder.add(mesh)
     return { mesh, phase: i * 1.7, w: 0.55 + 0.25 * Math.abs(Math.sin(i * 2.3)) }
   })
@@ -269,7 +270,7 @@ export async function buildPangat(c: PangatContent, { page, assets, view, target
       // Flames: grow with the heat and flicker.
       for (const f of flames) {
         const flick = 0.75 + 0.25 * Math.sin(time * 13 + f.phase) + 0.12 * Math.sin(time * 29 + f.phase * 2)
-        const h = heat * (0.5 + 0.6 * heat) * flick * body.r * 0.75
+        const h = heat * (0.45 + 0.55 * heat) * flick * body.r * 0.7
         f.mesh.scale.set(f.w * body.r * (0.9 + 0.5 * heat), Math.max(0.001, h), 1)
         ;(f.mesh.material as THREE.MeshBasicMaterial).opacity = clamp01(heat * 3) * 0.9
         f.mesh.visible = heat > 0.01
