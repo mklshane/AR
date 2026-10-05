@@ -91,6 +91,16 @@ export interface BeeFilmContent extends Placed {
   width: number
 }
 
+/** A transparent clip from scripts/alpha-clip.py (colour over alpha), e.g. a designer's render on white. */
+export interface AlphaVideoContent extends Placed {
+  type: 'alpha-video'
+  src: string
+  /** Display width in target pixels (height follows the clip). */
+  width: number
+  /** Loop instead of holding the last frame. */
+  loop?: boolean
+}
+
 export interface ModelContent extends Placed {
   type: 'model'
   /** GLB/glTF URL — exported from Blender as glTF Binary. */
@@ -143,6 +153,7 @@ export type ContentItem =
   | BeeFilmContent
   | ModelContent
   | TimelineContent
+  | AlphaVideoContent
   | AudioContent
 
 export interface TargetConfig {

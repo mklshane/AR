@@ -83,7 +83,20 @@ const page15: TargetConfig = {
   tapBurst: { colors: ['#f4c65a', '#e7a928', '#fff2cc'] },
 }
 
+/**
+ * p22, the eco-printed leaf cloth beside "4 Elements, 1 Process": the cut-out leaves fly back into the
+ * holes they were cut from (the design team's ILI LEAVES render, keyed by scripts/alpha-clip.py).
+ */
+const page22: TargetConfig = {
+  id: 'page22',
+  targetIndex: 3,
+  title: 'Ili leaves',
+  image: '/magazine/p22.webp',
+  size: [1080, 1485],
+  content: [{ type: 'alpha-video', id: 'leaves', src: '/ar/p22/leaves.mp4', at: [540, 742.5], width: 1080 }],
+}
+
 export const experience: ExperienceConfig = {
   mindFile: '/targets/targets.mind',
-  targets: [page13, page15, page13Closeup],
+  targets: [page13, page15, page13Closeup, page22],
 }
