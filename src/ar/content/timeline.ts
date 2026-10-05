@@ -13,6 +13,8 @@ interface Layer {
   /** Video frame of poses[0]. Fruits start at the swap; bubbles when they start growing. */
   from: number
   poses: Pose[]
+  /** Bubbles: the tail tip, as fractions of the sprite's size. */
+  tail?: [number, number]
 }
 
 /** Written by scripts/extract-page13.py. All geometry is in the reference video's pixels. */
@@ -264,25 +266,17 @@ const CARD_FRUIT = 0.36
  * its tail (the tail points at the fruit in the scene, so this keeps them "talking" the same way).
  */
 function cardFor(bubble: Layer, fruit: Layer | undefined, alt: string): CardSpec {
-  const last = (l: Layer) => l.poses[l.poses.length - 1]
-  const [bx, by] = last(bubble)
   const bh = bubble.size[1] / bubble.size[0] // bubble box: width 1, height bh
-  let origin: [number, number] = [0, 1]
+  const origin: [number, number] = bubble.tail ?? [0, 1]
   const boxes: { src: string; role: 'fruit' | 'bubble'; r: [number, number, number, number]; origin: [number, number] }[] = []
   if (fruit) {
-    // The bubble edge nearest the fruit's landed position = its tail.
-    const [fx, fy] = last(fruit)
-    const bs = last(bubble)[2]
-    origin = [
-      clamp01((fx - (bx - (bubble.size[0] * bs) / 2)) / (bubble.size[0] * bs)),
-      clamp01((fy - (by - (bubble.size[1] * bs) / 2)) / (bubble.size[1] * bs)),
-    ]
+    // Sit the fruit just past the tail tip, along the line from the bubble's centre through the tail.
     const tail = [origin[0], origin[1] * bh]
     const dir = [tail[0] - 0.5, tail[1] - bh / 2]
     const n = Math.hypot(dir[0], dir[1]) || 1
     const fw = CARD_FRUIT
     const fh = fw * (fruit.size[1] / fruit.size[0])
-    const reach = Math.max(fw, fh) * 0.42
+    const reach = Math.max(fw, fh) * 0.3
     const cx = tail[0] + (dir[0] / n) * reach
     const cy = tail[1] + (dir[1] / n) * reach
     boxes.push({ src: fruit.src, role: 'fruit', r: [cx - fw / 2, cy - fh / 2, fw, fh], origin: [0.5, 0.5] })
