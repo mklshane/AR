@@ -35,9 +35,20 @@ function saveTargetPlugin(): Plugin {
   }
 }
 
+// Keep the supplied 4K master locally; only the mobile edit belongs in the deployed app.
+function excludeBeeMaster(): Plugin {
+  return {
+    name: 'exclude-bee-master',
+    apply: 'build',
+    closeBundle() {
+      fs.rmSync(path.resolve(__dirname, 'dist/videos/BEES AR.mp4'), { force: true })
+    },
+  }
+}
+
 // HTTPS=1 (npm run dev:phone) serves over a self-signed cert so phones on the LAN get camera access.
 export default defineConfig({
-  plugins: [react(), tailwindcss(), saveTargetPlugin(), ...(process.env.HTTPS ? [basicSsl()] : [])],
+  plugins: [react(), tailwindcss(), saveTargetPlugin(), excludeBeeMaster(), ...(process.env.HTTPS ? [basicSsl()] : [])],
   build: {
     chunkSizeWarningLimit: 2500, // MindAR bundles TensorFlow.js; it is lazy-loaded on START AR
   },

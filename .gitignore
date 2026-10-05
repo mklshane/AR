@@ -27,3 +27,5 @@ dist-ssr
 design/*.pdf
 # Reference renders from the design team (large)
 design/reference/
+# Supplied 4K master. The mobile encode is the one shipped in AR.
+public/videos/BEES AR.mp4
