@@ -299,7 +299,26 @@ const page61: TargetConfig = {
   ],
 }
 
+/** p68 "Deep Ecology": the painting grows over the print, black background keyed out (scripts/alpha-clip.py --key black --soft 180, so its glow fades out without a dark halo). */
+const page68: TargetConfig = {
+  id: 'page68',
+  targetIndex: 13,
+  title: 'Deep Ecology',
+  image: '/magazine/p68.webp',
+  size: [1080, 1485],
+  content: [
+    {
+      type: 'alpha-video',
+      id: 'deep-ecology',
+      src: '/ar/p68/deep-ecology.mp4',
+      // The clip draws the painting 1/1.207 of its printed size; registered (SIFT) so it lands on the print.
+      at: [559, 663],
+      width: 1304,
+    },
+  ],
+}
+
 export const experience: ExperienceConfig = {
   mindFile: '/targets/targets.mind',
-  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41, page52, page58, page61],
+  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41, page52, page58, page61, page68],
 }
