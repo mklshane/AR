@@ -250,7 +250,29 @@ const page52: TargetConfig = {
   content: [{ type: 'alpha-video', id: 'four-oclock', src: '/ar/p52/four-oclock-alpha.mp4', at: [540, 742], width: 1080, loop: true }],
 }
 
+/** p58 "Pangat: Ang Pagbabalik ng Leftovers": turn the printed knob to heat the pan until the leftover lechon comes back as paksiw. */
+const page58: TargetConfig = {
+  id: 'page58',
+  targetIndex: 11,
+  title: 'Pangat',
+  image: '/magazine/p58.webp',
+  size: [1080, 1485],
+  prefetch: false,
+  content: [
+    {
+      type: 'pangat',
+      id: 'pangat',
+      asset: '/models/pangat.glb',
+      // Seen a little from above like the stove photo, the pan body over the printed flame.
+      at: [675, 480],
+      width: 640,
+      stand: 15,
+      knob: { at: [493, 1256], radius: 236 },
+    },
+  ],
+}
+
 export const experience: ExperienceConfig = {
   mindFile: '/targets/targets.mind',
-  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41, page52],
+  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41, page52, page58],
 }

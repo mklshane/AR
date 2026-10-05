@@ -132,6 +132,8 @@ export interface ModelContent extends Placed {
   rotation?: [number, number, number]
   /** Only this clip. Omit to play them all: ≤ 3 s ones once (intros), longer ones on a loop. */
   animation?: string
+  /** Play every clip once and hold the end (a little story rather than a loop); a tap replays it. */
+  once?: boolean
   /** Playback speed (1 = as exported). */
   speed?: number
   /** Stretch along the model's depth (+Z), e.g. 2 to spread a layered diorama's cards further apart. */
@@ -167,6 +169,21 @@ export interface PaperDollContent {
   body: [x: number, y: number, w: number, h: number]
   pieces: PaperDollPiece[]
   lift?: number
+}
+
+/** p58's pan on the flame, with the printed stove knob made turnable (see content/pangat.ts). */
+export interface PangatContent extends Placed {
+  type: 'pangat'
+  /** The pan GLB, with its two food cards (Empty.004 lechon, Empty.006 paksiw). */
+  asset: string
+  /** The pan's overall width (handle included), in target-image pixels. */
+  width: number
+  /** Degrees from the page (90 = upright). */
+  stand?: number
+  /** The printed knob: centre and radius in target-image pixels. */
+  knob: { at: Px; radius: number }
+  /** Where the "turn the knob" note floats (y in target-image pixels; below the page by default). */
+  hintY?: number
 }
 
 /** p34's ice cream tub: tap to open it and find a fish instead (see content/tub.ts). */
@@ -219,6 +236,7 @@ export type ContentItem =
   | ModelContent
   | TubContent
   | PaperDollContent
+  | PangatContent
   | TimelineContent
   | AlphaVideoContent
   | AudioContent

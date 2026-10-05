@@ -97,3 +97,58 @@ export function swish() {
   if (!a) return
   hiss(a, a.currentTime, 0.2, 2600, 1.2, 0.1, 700)
 }
+
+/** A knob detent: a tiny dry click. */
+export function tick() {
+  const a = audio()
+  buzz(5)
+  if (!a) return
+  hiss(a, a.currentTime, 0.018, 4200, 3, 0.18)
+}
+
+/** Something jumping out: a springy upward pop. */
+export function pop() {
+  const a = audio()
+  buzz(12)
+  if (!a) return
+  const t = a.currentTime
+  blip(a, t, 0.16, 260, 980, 0.28)
+  hiss(a, t, 0.05, 3000, 1.5, 0.12)
+}
+
+/** A happy landing: two bright notes. */
+export function ding() {
+  const a = audio()
+  buzz([10, 40, 10])
+  if (!a) return
+  const t = a.currentTime
+  blip(a, t, 0.35, 1046, 1040, 0.16, 'triangle')
+  blip(a, t + 0.09, 0.5, 1568, 1560, 0.12, 'triangle')
+}
+
+let sizzleGain: GainNode | null = null
+
+/** A continuous pan sizzle, 0 (off) … 1 (full heat). Cheap to call every frame. */
+export function sizzle(level: number) {
+  if (!sizzleGain) {
+    if (level <= 0 || !ctx) return // only start once a tap has made the context
+    const a = audio()!
+    const src = a.createBufferSource()
+    src.buffer = noise
+    src.loop = true
+    const hp = a.createBiquadFilter()
+    hp.type = 'highpass'
+    hp.frequency.value = 2500
+    const crackle = a.createBiquadFilter()
+    crackle.type = 'peaking'
+    crackle.frequency.value = 6000
+    crackle.gain.value = 6
+    sizzleGain = a.createGain()
+    sizzleGain.gain.value = 0
+    src.connect(hp).connect(crackle).connect(sizzleGain).connect(a.destination)
+    src.start()
+  }
+  // Flutter the level a little so it crackles rather than hisses.
+  const v = Math.max(0, level) * 0.09 * (0.75 + 0.5 * Math.random())
+  sizzleGain.gain.setTargetAtTime(v, sizzleGain.context.currentTime, 0.05)
+}

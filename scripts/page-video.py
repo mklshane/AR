@@ -42,7 +42,12 @@ def register(frame: np.ndarray, page: np.ndarray) -> np.ndarray:
 
 def matte(frame: np.ndarray, white: int) -> tuple[np.ndarray, np.ndarray]:
     """(unpremultiplied BGR float, alpha 0..1): background = near-white region touching the border."""
-    near = (frame.min(axis=2) >= white).astype(np.uint8)
+    # Some exported frames (keyframes) have a speckled background dipping to ~240, not flat white: smooth out
+    # the speckle and lower the threshold to that frame's own background level, read from its corners.
+    m = cv2.medianBlur(frame.min(axis=2), 5)
+    corners = np.concatenate([m[:40, :40].ravel(), m[:40, -40:].ravel(), m[-40:, :40].ravel(), m[-40:, -40:].ravel()])
+    white = min(white, int(np.percentile(corners, 0.5)) - 2)
+    near = (m >= white).astype(np.uint8)
     n, labels = cv2.connectedComponents(near, connectivity=4)
     border = np.unique(np.concatenate([labels[0], labels[-1], labels[:, 0], labels[:, -1]]))
     bg = np.isin(labels, border[border > 0])

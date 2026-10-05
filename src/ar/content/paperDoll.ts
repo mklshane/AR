@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import * as sfx from '../sfx'
+import { noteTexture } from './note'
 import type { PaperDollContent, PaperDollPiece } from '../types'
 import { type BuildContext, type ContentNode, Pulse, clamp01, disposeObject } from './ContentNode'
 
@@ -55,48 +56,6 @@ interface Piece {
   snap: Pulse
 }
 
-const MAGENTA = '#a3248f' // the page's title
-const INK = '#3a2233'
-
-/** A white paper tag with a strip of pink washi tape, like something stuck on the page. */
-async function noteTexture(title: string, hint: string) {
-  await Promise.all(['700 64px Montserrat', '500 31px Montserrat'].map((f) => document.fonts?.load(f).catch(() => undefined)))
-  const W = 800
-  const H = 236
-  const canvas = document.createElement('canvas')
-  canvas.width = W
-  canvas.height = H
-  const ctx = canvas.getContext('2d')!
-  ctx.save()
-  ctx.shadowColor = 'rgba(70, 20, 60, 0.3)'
-  ctx.shadowBlur = 18
-  ctx.shadowOffsetY = 8
-  ctx.fillStyle = '#fffaf6'
-  ctx.beginPath()
-  ctx.roundRect(24, 40, W - 48, H - 70, 14)
-  ctx.fill()
-  ctx.restore()
-  // Washi tape across the top, slightly askew, with faint stripes.
-  ctx.save()
-  ctx.translate(W / 2, 44)
-  ctx.rotate(-0.04)
-  ctx.fillStyle = 'rgba(236, 140, 200, 0.75)'
-  ctx.fillRect(-90, -22, 180, 44)
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.35)'
-  for (let x = -84; x < 90; x += 22) ctx.fillRect(x, -22, 8, 44)
-  ctx.restore()
-  ctx.textAlign = 'center'
-  ctx.fillStyle = MAGENTA
-  ctx.font = '700 64px Montserrat, system-ui, sans-serif'
-  ctx.fillText(title, W / 2, 132)
-  ctx.fillStyle = INK
-  ctx.font = '500 31px Montserrat, system-ui, sans-serif'
-  ctx.fillText(hint, W / 2, 182)
-  const map = new THREE.CanvasTexture(canvas)
-  map.colorSpace = THREE.SRGBColorSpace
-  return { map, aspect: H / W }
-}
-
 export async function buildPaperDoll(c: PaperDollContent, { page, assets }: BuildContext): Promise<ContentNode> {
   const group = new THREE.Group()
   group.position.z = c.lift ?? 0
@@ -111,7 +70,7 @@ export async function buildPaperDoll(c: PaperDollContent, { page, assets }: Buil
   // The note floats just above the page's top edge (so it covers nothing), tilted a touch, bobbing gently.
   let note: THREE.Mesh | null = null
   if (c.note) {
-    const { map, aspect } = await noteTexture(c.note.title, c.note.hint)
+    const { map, aspect } = await noteTexture(c.note.title, c.note.hint, { title: '#a3248f', ink: '#3a2233', tape: 'rgba(236, 140, 200, 0.75)' })
     const w = page.len(700)
     note = new THREE.Mesh(new THREE.PlaneGeometry(w, w * aspect), new THREE.MeshBasicMaterial({ map, transparent: true, opacity: 0, depthWrite: false, toneMapped: false }))
     note.position.set(...page.point([540, -95]), 0.02)

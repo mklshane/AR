@@ -191,7 +191,7 @@ export async function buildModel(c: ModelContent, { page, assets, view }: BuildC
   const intros: THREE.AnimationAction[] = []
   for (const clip of clips) {
     const action = mixer.clipAction(clip)
-    if (clip.duration <= 3) {
+    if (c.once || clip.duration <= 3) {
       action.setLoop(THREE.LoopOnce, 1)
       action.clampWhenFinished = true
       intros.push(action)
