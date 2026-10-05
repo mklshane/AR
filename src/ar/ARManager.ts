@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import type { Controller } from 'mind-ar/dist/mindar-image.prod.js'
 import { AssetManager } from './AssetManager'
 import { Emitter } from './Emitter'
@@ -107,6 +108,7 @@ export class ARManager extends Emitter<AREvents> {
       },
       {
         camera: this.camera,
+        environment: () => this.environment(),
         sampleCamera: (p) => this.sampleCamera(p),
         openCard: (c) => this.emit('card', { ...c, from: this.lastTap }),
         setFilm: (f) => this.emit('film', f),
@@ -415,6 +417,16 @@ export class ARManager extends Emitter<AREvents> {
     const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1)
     this.raycaster.setFromCamera(ndc, this.camera)
     this.targets.tap(this.raycaster)
+  }
+
+  private envMap?: THREE.Texture
+  private environment(): THREE.Texture {
+    if (!this.envMap) {
+      const pmrem = new THREE.PMREMGenerator(this.renderer!)
+      this.envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
+      pmrem.dispose()
+    }
+    return this.envMap
   }
 
   /** Median camera colour under world-space points (each projected through the current, zoomed view). */

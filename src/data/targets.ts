@@ -125,7 +125,43 @@ const page24: TargetConfig = {
   ],
 }
 
+/** p30 "Yano": his docufilm pops up over the portrait, captioned in the page's white script. */
+const page30: TargetConfig = {
+  id: 'page30',
+  targetIndex: 5,
+  title: 'Yano',
+  image: '/magazine/p30.webp',
+  size: [1080, 1485],
+  prefetch: false,
+  content: [
+    {
+      type: 'film',
+      id: 'yano',
+      src: '/videos/yano.mp4',
+      poster: '/ar/p30/poster.webp',
+      title: 'Yano',
+      subtitle: 'Community Development Worker',
+      frame: 'script',
+      // Over his chest, then it lifts off to fill the screen.
+      at: [540, 820],
+      width: 980,
+      lift: 0.02,
+    },
+  ],
+}
+
+/** p34 "The Ice Cream is Gone": the Selecta tub on the printed tray; tap it to find the fish. */
+const page34: TargetConfig = {
+  id: 'page34',
+  targetIndex: 6,
+  title: 'The Ice Cream is Gone',
+  image: '/magazine/p34.webp',
+  size: [1080, 1485],
+  prefetch: false,
+  content: [{ type: 'tub', id: 'ice-cream-tub', asset: '/models/ice-cream-tub.glb', at: [528, 800], width: 520 }],
+}
+
 export const experience: ExperienceConfig = {
   mindFile: '/targets/targets.mind',
-  targets: [page13, page15, page13Closeup, page22, page24],
+  targets: [page13, page15, page13Closeup, page22, page24, page30, page34],
 }

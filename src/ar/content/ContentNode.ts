@@ -14,6 +14,8 @@ export interface BuildContext {
 export interface ViewServices {
   /** The AR view's camera (zoom included), for content that sizes itself to the screen. */
   camera: THREE.PerspectiveCamera
+  /** A soft studio reflection map for lit (PBR) models, made on first use and shared. */
+  environment(): THREE.Texture
   /** Median camera-feed colour (sRGB) under these world-space points, or null if none are on screen. */
   sampleCamera(points: THREE.Vector3[]): THREE.Color | null
   /** Show a card over the camera, e.g. a fruit with its speech bubble, large enough to read. */

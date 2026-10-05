@@ -100,8 +100,9 @@ export function CameraUI({ config, debug, smoothing, onExit }: Props) {
       <div ref={containerRef} key={attempt} className="absolute inset-0 touch-none" />
 
       {status === 'loading' && !error && !cameraReady && <LoadingScreen step={step} />}
-      {status === 'loading' && !error && cameraReady && <ScanOverlay lost={false} preparing={step} />}
-      {status === 'scanning' && <ScanOverlay lost={everFound} />}
+      {status === 'loading' && !error && cameraReady && <ScanOverlay preparing={step} />}
+      {/* Only until the first page is found; after that, losing a page just hides its content. */}
+      {status === 'scanning' && !everFound && <ScanOverlay />}
       {toast && status === 'tracking' && (
         <div className="pop-in pointer-events-none absolute top-[max(1.25rem,env(safe-area-inset-top))] left-1/2 z-20 flex -translate-x-1/2 -rotate-2 items-center gap-2 rounded-full bg-paper py-1.5 pr-4 pl-2.5 font-display text-lg text-forest shadow-[0_6px_16px_-6px_rgb(0_0_0/0.45)]">
           <Leaf still className="h-6 w-6" />

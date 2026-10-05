@@ -93,8 +93,8 @@ export interface FilmContent extends Placed {
   title: string
   /** Extra caption detail before "Docufilm · m:ss" (e.g. who it's about). */
   subtitle?: string
-  /** Frame style: 'hex' (p15's hexagon photo crops) or 'flourish' (p24's white baroque corners). */
-  frame: 'hex' | 'flourish'
+  /** Frame style: 'hex' (p15's hexagon photo crops), 'flourish' (p24's white baroque corners) or 'script' (p30's white script name). */
+  frame: 'hex' | 'flourish' | 'script'
   /** Overall frame width in target-image pixels. */
   width: number
 }
@@ -119,6 +119,15 @@ export interface ModelContent extends Placed {
   rotation?: [number, number, number]
   /** Animation clip name to loop. Omit to play the first clip (if any). */
   animation?: string
+}
+
+/** p34's ice cream tub: tap to open it and find a fish instead (see content/tub.ts). */
+export interface TubContent extends Placed {
+  type: 'tub'
+  /** The tub GLB (with nodes box_mesh, Empty.001 lid, Sphere.00x scoops, Medeka fish). */
+  asset: string
+  /** The tub's width on the page, in target-image pixels. */
+  width: number
 }
 
 /**
@@ -160,6 +169,7 @@ export type ContentItem =
   | VideoContent
   | FilmContent
   | ModelContent
+  | TubContent
   | TimelineContent
   | AlphaVideoContent
   | AudioContent

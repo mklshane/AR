@@ -207,7 +207,79 @@ const flourish: FrameStyle = {
   },
 }
 
-const STYLES: Record<FilmContent['frame'], FrameStyle> = { hex, flourish }
+// ---- p30 "script": a plain rounded film with a white keyline, the page's white script name on a terracotta tab ----
+
+const SC_WIN: Rect = { x: 70, y: 70, w: 1060, h: 596 }
+const SC_RADIUS = 30
+const SC_KEY = 5 // white keyline, like the script's stroke
+const SC_TAB = { x: SC_WIN.x + 40, y: SC_WIN.y + SC_WIN.h - 8, h: 182 } // width follows the caption
+const TERRACOTTA = '#a8765a' // the page's warm wall, a shade deeper so white reads on it
+
+const script: FrameStyle = {
+  size: [1200, 860],
+  win: SC_WIN,
+  box: {
+    x: SC_WIN.x - SC_KEY,
+    y: SC_WIN.y - SC_KEY,
+    w: SC_WIN.w + 2 * SC_KEY,
+    h: SC_TAB.y + SC_TAB.h - (SC_WIN.y - SC_KEY),
+  },
+  async draw(ctx, c, duration) {
+    const win = SC_WIN
+    await loadFonts('110px "Miss Fajardose"', '600 20px Montserrat')
+    const line = [c.subtitle, 'Docufilm', runtime(duration)].filter(Boolean).join(' · ').toUpperCase()
+    ctx.font = '600 20px Montserrat, system-ui, sans-serif'
+    ctx.letterSpacing = '4px'
+    const tab = { ...SC_TAB, w: Math.min(win.w - 80, ctx.measureText(line).width + 64) }
+    ctx.letterSpacing = '0px'
+
+    ctx.save()
+    ctx.shadowColor = 'rgba(60, 36, 22, 0.35)'
+    ctx.shadowBlur = 24
+    ctx.shadowOffsetY = 10
+    ctx.fillStyle = TERRACOTTA
+    ctx.beginPath()
+    ctx.roundRect(tab.x, tab.y, tab.w, tab.h, [0, 0, 22, 22])
+    ctx.fill()
+    // White keyline with a soft shadow; the window is punched out below.
+    ctx.shadowColor = 'rgba(60, 36, 22, 0.4)'
+    ctx.shadowBlur = 40
+    ctx.shadowOffsetY = 18
+    ctx.fillStyle = '#ffffff'
+    ctx.beginPath()
+    ctx.roundRect(win.x - SC_KEY, win.y - SC_KEY, win.w + 2 * SC_KEY, win.h + 2 * SC_KEY, SC_RADIUS + SC_KEY)
+    ctx.fill()
+    ctx.restore()
+    ctx.globalCompositeOperation = 'destination-out'
+    ctx.beginPath()
+    ctx.roundRect(win.x, win.y, win.w, win.h, SC_RADIUS)
+    ctx.fill()
+    ctx.globalCompositeOperation = 'source-over'
+
+    ctx.fillStyle = '#ffffff'
+    ctx.font = '110px "Miss Fajardose", cursive'
+    ctx.fillText(c.title, tab.x + 30, tab.y + 84)
+    ctx.font = '600 20px Montserrat, system-ui, sans-serif'
+    ctx.letterSpacing = '4px'
+    ctx.fillText(line, tab.x + 32, tab.y + 156)
+    ctx.letterSpacing = '0px'
+  },
+  mask() {
+    const canvas = document.createElement('canvas')
+    canvas.width = 512
+    canvas.height = Math.round((512 * SC_WIN.h) / SC_WIN.w)
+    const ctx = canvas.getContext('2d')!
+    ctx.fillStyle = '#000'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = '#fff'
+    ctx.beginPath()
+    ctx.roundRect(0, 0, canvas.width, canvas.height, SC_RADIUS * (canvas.width / SC_WIN.w))
+    ctx.fill()
+    return canvas
+  },
+}
+
+const STYLES: Record<FilmContent['frame'], FrameStyle> = { hex, flourish, script }
 
 /** Where the film settles on screen: its frame spans the width less PAD each side, centred at Y. */
 const SCREEN = {
