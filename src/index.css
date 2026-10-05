@@ -1,7 +1,15 @@
 @import 'tailwindcss';
 
+/* Le Murmure (Velvetyne, SIL OFL 1.1, see /fonts/LeMurmure-OFL.txt): tall and tapered like the LIVIN masthead. */
+@font-face {
+  font-family: 'Le Murmure';
+  src: url('/fonts/LeMurmure-Regular.woff2') format('woff2');
+  font-display: swap;
+}
+
 @theme {
   --font-script: 'Miss Fajardose', cursive;
+  --font-masthead: 'Le Murmure', 'Montserrat', sans-serif;
   --font-display: 'Playfair Display', Georgia, serif;
   --font-sans: 'Montserrat', system-ui, sans-serif;
   --color-paper: #f4efe3;
@@ -71,6 +79,27 @@ body,
 .cover-sky {
   background: linear-gradient(180deg, var(--color-blush) 0%, var(--color-coral) 38%, #e98a7a 62%, #e9a589 100%);
 }
+/* The cover's square print speckle (cream and dark pixels), over the sky, hills and sea but under the copy. */
+.cover-speckle {
+  pointer-events: none;
+  background: url('/landing/grain.png') 0 0 / 160px 160px;
+  image-rendering: pixelated;
+}
+/* The cover's milkfish, drifting and bobbing in the shoreline sea. */
+@keyframes swim {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(6px, -3px) rotate(-2deg); }
+  50% { transform: translate(14px, 0) rotate(0deg); }
+  75% { transform: translate(6px, 3px) rotate(2deg); }
+}
+.swim { animation: swim 7s ease-in-out infinite; }
+/* The bees hover in a lazy loop. */
+@keyframes buzz {
+  0%, 100% { translate: 0 0; rotate: 0deg; }
+  30% { translate: 10px -8px; rotate: -6deg; }
+  60% { translate: -6px -14px; rotate: 4deg; }
+}
+.buzz { animation: buzz 5s ease-in-out infinite; }
 /* Feather the bottom of the illustration into the sea. */
 .cover-fade {
   mask-image: linear-gradient(180deg, #000 78%, transparent 100%);
@@ -104,7 +133,7 @@ body,
 .film-player.is-open { opacity: 1; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .scan-line, .pop-in, .rock { animation: none; }
+  .scan-line, .pop-in, .rock, .swim, .buzz { animation: none; }
   .film-player { transform: none; }
   .read-card, .read-card.is-closing { transform: none !important; transition: opacity 200ms ease; }
   .read-card-fruit.is-in, .read-card-bubble.is-in, .read-card-fruit.is-in img { animation: none; opacity: 1; }
