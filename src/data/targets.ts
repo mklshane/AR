@@ -74,7 +74,7 @@ const page15: TargetConfig = {
     {
       type: 'bee-film',
       id: 'bee-documentary',
-      src: '/videos/bees-ar-mobile.m4v',
+      src: '/videos/bees-ar-mobile.mp4',
       at: [540, 936],
       width: 960,
       lift: 0.055,
