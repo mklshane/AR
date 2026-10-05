@@ -41,11 +41,12 @@ function flameTexture() {
   ctx.bezierCurveTo(W * 0.62, H * 0.35, W * 0.98, H * 0.55, W * 0.9, H * 0.78)
   ctx.bezierCurveTo(W * 0.8, H * 0.98, W * 0.2, H * 0.98, W * 0.1, H * 0.78)
   ctx.bezierCurveTo(W * 0.02, H * 0.55, W * 0.38, H * 0.35, W / 2, 4)
+  // The printed flame's own palette: yellow heart, orange body, red tips (no white, which reads as glare).
   const g = ctx.createRadialGradient(W / 2, H * 0.78, 4, W / 2, H * 0.6, H * 0.6)
-  g.addColorStop(0, 'rgba(255, 250, 200, 1)')
-  g.addColorStop(0.25, 'rgba(255, 210, 60, 0.95)')
-  g.addColorStop(0.6, 'rgba(255, 110, 20, 0.7)')
-  g.addColorStop(1, 'rgba(220, 40, 10, 0)')
+  g.addColorStop(0, 'rgba(255, 214, 64, 0.95)')
+  g.addColorStop(0.35, 'rgba(250, 150, 30, 0.9)')
+  g.addColorStop(0.7, 'rgba(226, 70, 24, 0.6)')
+  g.addColorStop(1, 'rgba(200, 40, 20, 0)')
   ctx.fillStyle = g
   ctx.filter = 'blur(3px)'
   ctx.fill()
@@ -110,8 +111,9 @@ export async function buildPangat(c: PangatContent, { page, assets, view, target
   const bottom = new THREE.Box3().setFromObject(meshByName('Cylinder.001_2') ?? model)
   const body = { x: bottom.getCenter(new THREE.Vector3()).x, z: bottom.getCenter(new THREE.Vector3()).z, r: (bottom.max.x - bottom.min.x) / 2, y0: bottom.min.y, y1: box.max.y }
 
+  // `at` is the pot body's bottom centre (not the whole model's, whose handle would push the pot aside).
   const stand = THREE.MathUtils.degToRad(c.stand ?? 15)
-  model.position.set(-box.getCenter(new THREE.Vector3()).x, -box.min.y, -THREE.MathUtils.lerp(box.getCenter(new THREE.Vector3()).z, box.min.z, Math.cos(stand)))
+  model.position.set(-body.x, -box.min.y, -body.z)
   const holder = new THREE.Group() // pan space = model space shifted by model.position
   holder.rotation.x = stand
   holder.add(model)
@@ -120,19 +122,20 @@ export async function buildPangat(c: PangatContent, { page, assets, view, target
   pan.position.set(px, py, 0)
   pan.add(holder)
   root.add(pan)
-  const norm = page.len(c.width) / (box.max.x - box.min.x)
+  const norm = page.len(c.width) / (2 * body.r) // `width` is the pot body's
   const P = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z).add(model.position) // model → pan space
   const centre = (y: number) => P(body.x, y, body.z)
 
-  // ---- Flames licking up around the pan's base ----
+  // ---- Flames licking up around and behind the pan (it hides their middle, as in the photo) ----
   const flameMap = flameTexture()
   const flames = Array.from({ length: 7 }, (_, i) => {
     const mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(1, 2).translate(0, 1, 0), // pivot at the base
-      new THREE.MeshBasicMaterial({ map: flameMap, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0, toneMapped: false }),
+      new THREE.MeshBasicMaterial({ map: flameMap, transparent: true, depthWrite: false, opacity: 0, toneMapped: false }),
     )
     const k = i / 6 - 0.5
-    mesh.position.copy(centre(body.y0 - 0.15)).add(new THREE.Vector3(k * body.r * 2.1, 0, (i % 2 ? 0.25 : -0.25) * body.r))
+    mesh.position.copy(centre(body.y0 + 0.1)).add(new THREE.Vector3(k * body.r * 2.6, 0, -body.r * 1.1))
+    mesh.renderOrder = -1 // before the pan, so the pan always sits in front
     holder.add(mesh)
     return { mesh, phase: i * 1.7, w: 0.55 + 0.25 * Math.abs(Math.sin(i * 2.3)) }
   })
@@ -153,7 +156,8 @@ export async function buildPangat(c: PangatContent, { page, assets, view, target
       n--
       const a = Math.random() * Math.PI * 2
       const r = Math.random() * body.r * 0.7
-      p.mesh.position.copy(centre(body.y1 - 0.1)).add(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r * 0.5))
+      // From just above the rim, so it never fills the pot with a white blob.
+      p.mesh.position.copy(centre(body.y1 + body.r * 0.25)).add(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r * 0.5))
       p.vel.set((Math.random() - 0.5) * (burst ? 1.6 : 0.4), (burst ? 1.6 : 0.9) + Math.random() * 0.5, 0)
       p.age = 0
       p.life = 1.3 + Math.random() * 0.8
@@ -265,15 +269,15 @@ export async function buildPangat(c: PangatContent, { page, assets, view, target
       // Flames: grow with the heat and flicker.
       for (const f of flames) {
         const flick = 0.75 + 0.25 * Math.sin(time * 13 + f.phase) + 0.12 * Math.sin(time * 29 + f.phase * 2)
-        const h = heat * (0.6 + heat) * flick * body.r * 0.9
-        f.mesh.scale.set(f.w * body.r * (0.6 + 0.4 * heat), Math.max(0.001, h), 1)
+        const h = heat * (0.5 + 0.6 * heat) * flick * body.r * 0.75
+        f.mesh.scale.set(f.w * body.r * (0.9 + 0.5 * heat), Math.max(0.001, h), 1)
         ;(f.mesh.material as THREE.MeshBasicMaterial).opacity = clamp01(heat * 3) * 0.9
         f.mesh.visible = heat > 0.01
         faceCamera(f.mesh)
       }
 
       // Steam: a wisp at low heat, billowing at full.
-      emitDebt += dt * (heat > 0.15 ? 2 + heat * heat * 16 : 0)
+      emitDebt += dt * (heat > 0.15 ? 2 + heat * heat * 9 : 0)
       if (emitDebt >= 1) {
         emit(Math.floor(emitDebt))
         emitDebt %= 1
@@ -289,7 +293,7 @@ export async function buildPangat(c: PangatContent, { page, assets, view, target
         p.mesh.position.addScaledVector(p.vel, dt)
         p.vel.x += Math.sin(time * 2 + p.life * 10) * dt * 0.3
         p.mesh.scale.setScalar(p.size * (0.4 + k))
-        ;(p.mesh.material as THREE.MeshBasicMaterial).opacity = 0.45 * Math.sin(Math.PI * k)
+        ;(p.mesh.material as THREE.MeshBasicMaterial).opacity = 0.32 * Math.sin(Math.PI * k)
         faceCamera(p.mesh)
       }
 

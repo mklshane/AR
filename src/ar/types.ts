@@ -176,7 +176,7 @@ export interface PangatContent extends Placed {
   type: 'pangat'
   /** The pan GLB, with its two food cards (Empty.004 lechon, Empty.006 paksiw). */
   asset: string
-  /** The pan's overall width (handle included), in target-image pixels. */
+  /** The pot body's width (handle not included), in target-image pixels; `at` is its bottom centre. */
   width: number
   /** Degrees from the page (90 = upright). */
   stand?: number

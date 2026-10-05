@@ -263,9 +263,10 @@ const page58: TargetConfig = {
       type: 'pangat',
       id: 'pangat',
       asset: '/models/pangat.glb',
-      // Seen a little from above like the stove photo, the pan body over the printed flame.
-      at: [675, 480],
-      width: 640,
+      // Seen a little from above like the stove photo; the pot centred on the printed flame (x 291–836),
+      // sitting in its lower half so the painted tongues rise around it.
+      at: [563, 600],
+      width: 500,
       stand: 15,
       knob: { at: [493, 1256], radius: 236 },
     },
