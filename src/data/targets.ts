@@ -54,7 +54,7 @@ const page13: TargetConfig = {
  */
 const page13Closeup: TargetConfig = {
   id: 'page13-closeup',
-  targetIndex: 1,
+  targetIndex: 2,
   group: 'page13',
   title: "Lola's Beauty Drawer Was The Kitchen (close-up)",
   image: '/ar/p13/closeup.webp',
@@ -62,7 +62,28 @@ const page13Closeup: TargetConfig = {
   content: [{ ...basketTimeline, region: [173, 16, 907, 795] }],
 }
 
+/** Joseph Del Rio's beekeeping story, keyed to the hexagonal beekeeper photograph. */
+const page15: TargetConfig = {
+  id: 'page15',
+  targetIndex: 1,
+  title: 'Inside the Hive',
+  image: '/magazine/p15.webp',
+  size: [1080, 1485],
+  prefetch: false,
+  content: [
+    {
+      type: 'bee-film',
+      id: 'bee-documentary',
+      src: '/videos/bees-ar-mobile.m4v',
+      at: [540, 936],
+      width: 960,
+      lift: 0.055,
+    },
+  ],
+  tapBurst: { colors: ['#f4c65a', '#e7a928', '#fff2cc'] },
+}
+
 export const experience: ExperienceConfig = {
   mindFile: '/targets/targets.mind',
-  targets: [page13, page13Closeup],
+  targets: [page13, page15, page13Closeup],
 }

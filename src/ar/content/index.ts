@@ -4,6 +4,7 @@ import { buildCutout } from './cutout'
 import { buildAudio, buildImage, buildModel, buildText, buildVideo } from './media'
 import { buildCloud, buildHeart, buildStar } from './shapes'
 import { buildTimeline } from './timeline'
+import { buildBeeFilm } from './beeFilm'
 
 /** Content type → builder. Add a new content type by adding a builder here and a type in types.ts. */
 export function buildContent(item: ContentItem, ctx: BuildContext): Promise<ContentNode> {
@@ -22,6 +23,8 @@ export function buildContent(item: ContentItem, ctx: BuildContext): Promise<Cont
       return buildImage(item, ctx)
     case 'video':
       return buildVideo(item, ctx)
+    case 'bee-film':
+      return buildBeeFilm(item, ctx)
     case 'model':
       return buildModel(item, ctx)
     case 'timeline':

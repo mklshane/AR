@@ -83,6 +83,14 @@ export interface VideoContent extends Placed {
   loop?: boolean
 }
 
+/** Page 15's honeycomb-framed documentary player. */
+export interface BeeFilmContent extends Placed {
+  type: 'bee-film'
+  src: string
+  /** Overall card width in target-image pixels. */
+  width: number
+}
+
 export interface ModelContent extends Placed {
   type: 'model'
   /** GLB/glTF URL — exported from Blender as glTF Binary. */
@@ -132,6 +140,7 @@ export type ContentItem =
   | TextContent
   | ImageContent
   | VideoContent
+  | BeeFilmContent
   | ModelContent
   | TimelineContent
   | AudioContent
