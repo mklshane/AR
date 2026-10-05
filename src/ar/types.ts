@@ -83,11 +83,19 @@ export interface VideoContent extends Placed {
   loop?: boolean
 }
 
-/** Page 15's honeycomb-framed documentary player. */
-export interface BeeFilmContent extends Placed {
-  type: 'bee-film'
+/** A page's documentary in a frame matching that page; plays with sound and can go full screen. */
+export interface FilmContent extends Placed {
+  type: 'film'
   src: string
-  /** Overall card width in target-image pixels. */
+  /** Still shown until the film's first frame arrives. */
+  poster: string
+  /** Shown on the caption and in the full-screen player. */
+  title: string
+  /** Extra caption detail before "Docufilm · m:ss" (e.g. who it's about). */
+  subtitle?: string
+  /** Frame style: 'hex' (p15's hexagon photo crops) or 'flourish' (p24's white baroque corners). */
+  frame: 'hex' | 'flourish'
+  /** Overall frame width in target-image pixels. */
   width: number
 }
 
@@ -150,7 +158,7 @@ export type ContentItem =
   | TextContent
   | ImageContent
   | VideoContent
-  | BeeFilmContent
+  | FilmContent
   | ModelContent
   | TimelineContent
   | AlphaVideoContent

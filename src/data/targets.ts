@@ -72,9 +72,12 @@ const page15: TargetConfig = {
   prefetch: false,
   content: [
     {
-      type: 'bee-film',
+      type: 'film',
       id: 'bee-documentary',
       src: '/videos/bees-ar-mobile.mp4',
+      poster: '/ar/p15/poster.webp',
+      title: 'Queen’s Honeybee Farm',
+      frame: 'hex',
       at: [540, 936],
       width: 960,
       lift: 0.055,
@@ -96,7 +99,33 @@ const page22: TargetConfig = {
   content: [{ type: 'alpha-video', id: 'leaves', src: '/ar/p22/leaves.mp4', at: [540, 742.5], width: 1080 }],
 }
 
+/** p24 "Teacher Maui": the Ili Likhaan docufilm over the portrait, framed with the page's own flourishes. */
+const page24: TargetConfig = {
+  id: 'page24',
+  targetIndex: 4,
+  title: 'Teacher Maui',
+  image: '/magazine/p24.webp',
+  size: [1080, 1485],
+  prefetch: false,
+  content: [
+    {
+      type: 'film',
+      id: 'ili-likhaan',
+      src: '/videos/ili-likhaan.mp4',
+      poster: '/ar/p24/poster.webp',
+      title: 'Ili Likhaan',
+      subtitle: 'Teacher Maui',
+      frame: 'flourish',
+      // Window's top-left on the printed portrait's (205, 135), at its width (710): frame = 710 × 1200/1060.
+      at: [560, 376],
+      width: 804,
+      // Low, so the top-left flourish stays over its printed twin as the phone tilts.
+      lift: 0.02,
+    },
+  ],
+}
+
 export const experience: ExperienceConfig = {
   mindFile: '/targets/targets.mind',
-  targets: [page13, page15, page13Closeup, page22],
+  targets: [page13, page15, page13Closeup, page22, page24],
 }
