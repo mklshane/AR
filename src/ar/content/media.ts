@@ -59,6 +59,30 @@ export async function buildImage(c: ImageContent, { page, assets }: BuildContext
   return floatingPlane(map, w, (w * img.height) / img.width, page.point(c.at), c.lift ?? 0.06, c.delay)
 }
 
+/** A page-sized clip lying on the page: fades in on its first frame and plays while the page is in view. */
+function videoCover(c: VideoContent, video: HTMLVideoElement, map: THREE.VideoTexture, w: number, at: [number, number]): ContentNode {
+  const mat = new THREE.MeshBasicMaterial({ map, transparent: true, opacity: 0, toneMapped: false })
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, (w * video.videoHeight) / video.videoWidth), mat)
+  mesh.position.set(at[0], at[1], c.lift ?? 0.0005)
+  let shownAt = -1
+  return {
+    object: mesh,
+    update({ t }) {
+      if (shownAt < 0 && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) shownAt = t
+      mat.opacity = shownAt < 0 ? 0 : Math.min(1, (t - shownAt) / 0.4)
+    },
+    onShow: () => void video.play().catch(() => undefined),
+    onHide: () => video.pause(),
+    dispose: () => {
+      video.pause()
+      video.removeAttribute('src')
+      video.load()
+      map.dispose()
+      disposeObject(mesh)
+    },
+  }
+}
+
 export async function buildVideo(c: VideoContent, { page }: BuildContext): Promise<ContentNode> {
   const video = document.createElement('video')
   // Muted + inline is what lets iOS Safari autoplay; the user taps the video to turn sound on.
@@ -76,6 +100,7 @@ export async function buildVideo(c: VideoContent, { page }: BuildContext): Promi
   const map = new THREE.VideoTexture(video)
   map.colorSpace = THREE.SRGBColorSpace
   const w = page.len(c.width)
+  if (c.cover) return videoCover(c, video, map, w, page.point(c.at))
   const node = floatingPlane(map, w, (w * video.videoHeight) / video.videoWidth, page.point(c.at), c.lift ?? 0.01, c.delay)
   return {
     ...node,
@@ -144,11 +169,15 @@ export async function buildModel(c: ModelContent, { page, assets, view }: BuildC
     } else console.warn(`[ar] ${c.asset} has no anchor node "${c.anchor}"`)
   }
   model.position.sub(base)
+  // Spread the layers out along depth (scaling about the base, so it still rests on the page).
+  const depth = new THREE.Group()
+  depth.scale.z = c.depth ?? 1
+  depth.add(model)
 
   // Y-up → out of the page, then lean back by (90 − stand)°.
   const holder = new THREE.Group()
   holder.rotation.x = standRad
-  holder.add(model)
+  holder.add(depth)
   const [rx, ry, rz] = (c.rotation ?? [0, 0, 0]).map(THREE.MathUtils.degToRad)
   const group = new THREE.Group()
   const [x, y] = page.point(c.at)
@@ -173,9 +202,14 @@ export async function buildModel(c: ModelContent, { page, assets, view }: BuildC
 
   return {
     object: group,
-    update({ t, dt }) {
+    update({ t, dt, time }) {
       const p = intro(t, c.delay, 0.8)
       group.scale.setScalar(Math.max(0.001, easeOutBack(p)) * norm)
+      if (c.sway) {
+        holder.rotation.z = Math.sin(time * 0.6) * 0.035
+        holder.rotation.x = standRad + Math.sin(time * 0.45) * 0.04
+        holder.position.z = (0.5 + 0.5 * Math.sin(time * 0.9)) * 0.08 * size.y
+      }
       // Hold the scene at its first frame until it has popped in.
       if (!started && p > 0) {
         started = true

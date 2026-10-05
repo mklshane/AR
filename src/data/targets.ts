@@ -190,7 +190,7 @@ const page39: TargetConfig = {
   ],
 }
 
-/** p40 "MAGWAI wants your beach bag…": the reef-safe sunscreen rising out of a watercolour reef, on its printed tube. */
+/** p40 "MAGWAI wants your beach bag…": the reef-safe sunscreen rising out of a watercolour reef, mid-page. */
 const page40: TargetConfig = {
   id: 'page40',
   targetIndex: 8,
@@ -203,19 +203,20 @@ const page40: TargetConfig = {
       type: 'model',
       id: 'magwai-sunscreen',
       asset: '/models/magwai-sunscreen.glb',
-      // Nearly flat, so the layered reef cards face a phone looking down at the page and pop up towards it;
-      // the tube's base sits on the printed tube (on the towel).
-      anchor: 'cap.001',
+      // Nearly flat and centred on the page, so the layered reef cards face a phone looking down at it and
+      // pop up towards it (their layers spread 2.2× for depth).
       hide: ['Cube.006'], // a leftover shampoo box from the shared scene
-      at: [770, 1300],
-      width: 560,
+      at: [540, 1430],
+      width: 760,
+      depth: 2.2,
+      sway: true,
       scale: 1,
       stand: 12,
     },
   ],
 }
 
-/** p41 "Then MAGWAI looked at the bathroom": the shampoo bar in the same reef, on its printed bar in the waves. */
+/** p41 "Then MAGWAI looked at the bathroom": the shampoo bar rising out of the same reef, mid-page. */
 const page41: TargetConfig = {
   id: 'page41',
   targetIndex: 9,
@@ -228,17 +229,28 @@ const page41: TargetConfig = {
       type: 'model',
       id: 'magwai-shampoo',
       asset: '/models/magwai-shampoo.glb',
-      anchor: 'Cube.006',
       hide: ['cap.001'], // the sunscreen tube belongs to p40
-      at: [240, 1400],
-      width: 560,
+      at: [540, 1430],
+      width: 760,
+      depth: 2.2,
+      sway: true,
       scale: 1,
       stand: 12,
     },
   ],
 }
 
+/** p52 "It's Four O'Clock!": the clock's people come alive (the page re-made as a clip by scripts/page-video.py). */
+const page52: TargetConfig = {
+  id: 'page52',
+  targetIndex: 10,
+  title: "It's Four O'Clock!",
+  image: '/magazine/p52.webp',
+  size: [1080, 1485],
+  content: [{ type: 'video', id: 'four-oclock', src: '/ar/p52/four-oclock.mp4', cover: true, at: [540, 742], width: 1080, loop: true }],
+}
+
 export const experience: ExperienceConfig = {
   mindFile: '/targets/targets.mind',
-  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41],
+  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41, page52],
 }

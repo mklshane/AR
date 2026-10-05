@@ -81,6 +81,11 @@ export interface VideoContent extends Placed {
   src: string
   width: number
   loop?: boolean
+  /**
+   * Lie flat over the printed page (no pop-up or bob) and fade in once the first frame is ready: for an
+   * animated version of the page itself, e.g. made by scripts/page-video.py.
+   */
+  cover?: boolean
 }
 
 /** A page's documentary in a frame matching that page; plays with sound and can go full screen. */
@@ -129,6 +134,10 @@ export interface ModelContent extends Placed {
   animation?: string
   /** Playback speed (1 = as exported). */
   speed?: number
+  /** Stretch along the model's depth (+Z), e.g. 2 to spread a layered diorama's cards further apart. */
+  depth?: number
+  /** A slow idle sway and bob, so a still scene feels alive. */
+  sway?: boolean
 }
 
 /** One cut-out garment of a paper doll. Positions are target-image pixels (centres). */
