@@ -376,9 +376,10 @@ def main():
         import subprocess, tempfile
         with tempfile.TemporaryDirectory() as tmp:
             dpi = 270
-            inset, w, h = round(29.5 * dpi / 72), round(576 * dpi / 72), round(792 * dpi / 72)
+            # (own names: w/h above are the clip's size, written to the timeline below)
+            inset, trim_w, trim_h = round(29.5 * dpi / 72), round(576 * dpi / 72), round(792 * dpi / 72)
             subprocess.run(['pdftoppm', '-r', str(dpi), '-f', '13', '-l', '13', '-singlefile', '-x', str(inset), '-y', str(inset),
-                            '-W', str(w), '-H', str(h), '-png', pdf, f'{tmp}/p'], check=True)
+                            '-W', str(trim_w), '-H', str(trim_h), '-png', pdf, f'{tmp}/p'], check=True)
             hi = cv2.imread(f'{tmp}/p.png')
         k2 = hi.shape[1] / page.shape[1]
         crop = hi[int(ry0 * k2):int(ry1 * k2), int(rx0 * k2):int(rx1 * k2)]

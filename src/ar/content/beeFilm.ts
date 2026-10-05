@@ -119,13 +119,21 @@ export async function buildBeeFilm(c: BeeFilmContent, { page }: BuildContext): P
   // Fill the window without distorting the film: crop its left/right edges for this slightly taller slot.
   const filmRatio = video.videoWidth / video.videoHeight
   const slotRatio = videoWidth / videoHeight
+  const uv = picture.geometry.attributes.uv
   if (filmRatio > slotRatio) {
     const used = slotRatio / filmRatio
-    picture.geometry.attributes.uv.setXY(0, (1 - used) / 2, 1)
-    picture.geometry.attributes.uv.setXY(1, (1 + used) / 2, 1)
-    picture.geometry.attributes.uv.setXY(2, (1 - used) / 2, 0)
-    picture.geometry.attributes.uv.setXY(3, (1 + used) / 2, 0)
+    uv.setXY(0, (1 - used) / 2, 1)
+    uv.setXY(1, (1 + used) / 2, 1)
+    uv.setXY(2, (1 - used) / 2, 0)
+    uv.setXY(3, (1 + used) / 2, 0)
+  } else {
+    const used = filmRatio / slotRatio
+    uv.setXY(0, 0, (1 + used) / 2)
+    uv.setXY(1, 1, (1 + used) / 2)
+    uv.setXY(2, 0, (1 - used) / 2)
+    uv.setXY(3, 1, (1 - used) / 2)
   }
+  uv.needsUpdate = true
   group.add(picture)
 
   const frameMap = makeFrameTexture()
