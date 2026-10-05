@@ -86,7 +86,7 @@ function makeSoundTexture(muted: boolean): THREE.CanvasTexture {
   return texture
 }
 
-export async function buildBeeFilm(c: BeeFilmContent, { page }: BuildContext): Promise<ContentNode> {
+export async function buildBeeFilm(c: BeeFilmContent, { page, assets }: BuildContext): Promise<ContentNode> {
   const video = document.createElement('video')
   video.playsInline = true
   video.muted = true
@@ -113,7 +113,8 @@ export async function buildBeeFilm(c: BeeFilmContent, { page }: BuildContext): P
   const videoHeight = height * 515 / 805
   const videoMap = new THREE.VideoTexture(video)
   videoMap.colorSpace = THREE.SRGBColorSpace
-  const videoMat = new THREE.MeshBasicMaterial({ map: videoMap, side: THREE.DoubleSide, toneMapped: false })
+  const posterMap = await assets.texture('/ar/p15/poster.webp')
+  const videoMat = new THREE.MeshBasicMaterial({ map: posterMap, side: THREE.DoubleSide, toneMapped: false })
   const picture = new THREE.Mesh(new THREE.PlaneGeometry(videoWidth, videoHeight), videoMat)
   picture.position.z = 0.001
   // Fill the window without distorting the film: crop its left/right edges for this slightly taller slot.
@@ -156,6 +157,10 @@ export async function buildBeeFilm(c: BeeFilmContent, { page }: BuildContext): P
   return {
     object: group,
     update({ t, time }) {
+      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && videoMat.map !== videoMap) {
+        videoMat.map = videoMap
+        videoMat.needsUpdate = true
+      }
       const p = clamp01(intro(t, c.delay, 1.1))
       group.scale.setScalar(Math.max(0.001, easeOutBack(p)))
       group.position.z = (c.lift ?? 0.06) + 0.012 * Math.sin(time * 1.3) * p
@@ -163,6 +168,7 @@ export async function buildBeeFilm(c: BeeFilmContent, { page }: BuildContext): P
     },
     onShow() {
       visible = true
+      if (video.ended) video.currentTime = 0
       void video.play().catch(() => undefined)
     },
     onHide() {

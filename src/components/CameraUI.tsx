@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ARManager, type ARErrorCode, type ARStatus } from '../ar/ARManager'
+import { ARManager, type ARCard, type ARErrorCode, type ARStatus } from '../ar/ARManager'
 import type { ExperienceConfig } from '../ar/types'
 import { ARControls } from './ARControls'
 import { ErrorScreen } from './ErrorScreen'
@@ -33,7 +33,7 @@ export function CameraUI({ config, debug, smoothing, onExit }: Props) {
   const [toast, setToast] = useState<string | null>(null)
   const [photo, setPhoto] = useState<{ blob: Blob; url: string } | null>(null)
   const [attempt, setAttempt] = useState(0)
-  const [card, setCard] = useState<{ src: string; alt: string } | null>(null)
+  const [card, setCard] = useState<ARCard | null>(null)
   const [zoom, setZoom] = useState(1)
 
   useEffect(() => {
@@ -118,7 +118,7 @@ export function CameraUI({ config, debug, smoothing, onExit }: Props) {
 
       {showHud && <TrackingHud manager={getManager} />}
       <ARControls onClose={onExit} onCapture={ready ? capture : undefined} />
-      {card && <ReadCard src={card.src} alt={card.alt} onClose={() => setCard(null)} />}
+      {card && <ReadCard card={card} onClose={() => setCard(null)} />}
       {error && <ErrorScreen code={error} onRetry={retry} onBack={onExit} />}
       {photo && (
         <PhotoSheet

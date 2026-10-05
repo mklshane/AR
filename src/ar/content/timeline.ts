@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import type { TimelineContent } from '../types'
-import { type BuildContext, type ContentNode, clamp01, disposeObject, easeOutBack } from './ContentNode'
+import { type BuildContext, type CardSpec, type ContentNode, clamp01, disposeObject, easeOutBack } from './ContentNode'
 
 type Pose = [cx: number, cy: number, scale: number]
 
@@ -229,13 +229,14 @@ export async function buildTimeline(c: TimelineContent, { page, assets, view }: 
         ;(shadow.material as THREE.MeshBasicMaterial).opacity = 0.28 * shade
       }
     },
-    // Tap a bubble (or its fruit) to read it full-screen.
+    // Tap a bubble (or its fruit) to read it: the pair opens as a card, laid out as in the scene.
     onTap: (hit) => {
       const s = byMesh.get(hit.object)
       if (!s || !s.mesh.visible) return
       const bubble = s.layer.kind === 'bubble' ? s : bubbleOf(s.layer.id)
       if (!bubble || !bubble.mesh.visible || bubble.mesh.scale.x < 0.5) return
-      view.openCard({ src: bubble.layer.src, alt: c.captions?.[bubble.layer.id] ?? bubble.layer.id.replace('bubble-', '') })
+      const fruit = sprites.find((f) => f.layer.kind === 'fruit' && bubble.layer.id === `bubble-${f.layer.id}`)
+      view.openCard(cardFor(bubble.layer, fruit?.layer, c.captions?.[bubble.layer.id] ?? bubble.layer.id.replace('bubble-', '')))
     },
     onShow: () => {
       shown = true
@@ -252,5 +253,54 @@ export async function buildTimeline(c: TimelineContent, { page, assets, view }: 
       video.removeAttribute('src')
       video.load()
     },
+  }
+}
+
+/** Size of the fruit on a card, relative to its bubble's width. */
+const CARD_FRUIT = 0.36
+
+/**
+ * A fruit and its bubble composed for reading: the bubble as big as it can be, the fruit tucked against
+ * its tail (the tail points at the fruit in the scene, so this keeps them "talking" the same way).
+ */
+function cardFor(bubble: Layer, fruit: Layer | undefined, alt: string): CardSpec {
+  const last = (l: Layer) => l.poses[l.poses.length - 1]
+  const [bx, by] = last(bubble)
+  const bh = bubble.size[1] / bubble.size[0] // bubble box: width 1, height bh
+  let origin: [number, number] = [0, 1]
+  const boxes: { src: string; role: 'fruit' | 'bubble'; r: [number, number, number, number]; origin: [number, number] }[] = []
+  if (fruit) {
+    // The bubble edge nearest the fruit's landed position = its tail.
+    const [fx, fy] = last(fruit)
+    const bs = last(bubble)[2]
+    origin = [
+      clamp01((fx - (bx - (bubble.size[0] * bs) / 2)) / (bubble.size[0] * bs)),
+      clamp01((fy - (by - (bubble.size[1] * bs) / 2)) / (bubble.size[1] * bs)),
+    ]
+    const tail = [origin[0], origin[1] * bh]
+    const dir = [tail[0] - 0.5, tail[1] - bh / 2]
+    const n = Math.hypot(dir[0], dir[1]) || 1
+    const fw = CARD_FRUIT
+    const fh = fw * (fruit.size[1] / fruit.size[0])
+    const reach = Math.max(fw, fh) * 0.42
+    const cx = tail[0] + (dir[0] / n) * reach
+    const cy = tail[1] + (dir[1] / n) * reach
+    boxes.push({ src: fruit.src, role: 'fruit', r: [cx - fw / 2, cy - fh / 2, fw, fh], origin: [0.5, 0.5] })
+  }
+  boxes.push({ src: bubble.src, role: 'bubble', r: [0, 0, 1, bh], origin })
+  const x0 = Math.min(...boxes.map((b) => b.r[0]))
+  const y0 = Math.min(...boxes.map((b) => b.r[1]))
+  const x1 = Math.max(...boxes.map((b) => b.r[0] + b.r[2]))
+  const y1 = Math.max(...boxes.map((b) => b.r[1] + b.r[3]))
+  const W = x1 - x0
+  return {
+    alt,
+    aspect: (y1 - y0) / W,
+    items: boxes.map((b) => ({
+      src: b.src,
+      role: b.role,
+      rect: [(b.r[0] - x0) / W, (b.r[1] - y0) / W, b.r[2] / W, b.r[3] / W],
+      origin: b.origin,
+    })),
   }
 }

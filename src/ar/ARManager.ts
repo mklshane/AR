@@ -6,8 +6,12 @@ import type { PoseFilterOptions } from './PoseFilter'
 import { preloadEngine, preloadTargets } from './preload'
 import { TargetManager } from './TargetManager'
 import type { ExperienceConfig, TargetConfig } from './types'
+import type { CardSpec } from './content/ContentNode'
 
 export type ARStatus = 'idle' | 'loading' | 'scanning' | 'tracking' | 'error'
+
+/** A tap-to-read card, with the tap position (viewport px) it flies out of. */
+export type ARCard = CardSpec & { from: { x: number; y: number } }
 
 export type ARErrorCode =
   | 'insecure'
@@ -37,8 +41,8 @@ interface AREvents extends Record<string, unknown> {
   lost: TargetConfig
   contentError: string[]
   error: ARError
-  /** Content asked to show an image full-screen (tap-to-read). */
-  card: { src: string; alt: string }
+  /** Content asked to show a card (tap-to-read); `from` is the tap, in viewport px, for the fly-in. */
+  card: ARCard
   /** Current pinch zoom (1 = none). */
   zoom: number
 }
@@ -83,6 +87,7 @@ export class ARManager extends Emitter<AREvents> {
   private gestured = false
   private sampleCtx?: CanvasRenderingContext2D
   private videoBox = { left: 0, top: 0, width: 1, height: 1 }
+  private lastTap = { x: 0, y: 0 }
   status: ARStatus = 'idle'
 
   constructor(container: HTMLElement, config: ExperienceConfig, opts: AROptions = {}) {
@@ -98,7 +103,7 @@ export class ARManager extends Emitter<AREvents> {
         if (event === 'contentError' && 'ids' in payload) this.emit('contentError', payload.ids)
         this.setStatus(this.targets.anyVisible ? 'tracking' : 'scanning')
       },
-      { sampleCamera: (p) => this.sampleCamera(p), openCard: (c) => this.emit('card', c) },
+      { sampleCamera: (p) => this.sampleCamera(p), openCard: (c) => this.emit('card', { ...c, from: this.lastTap }) },
       { debug: opts.debug, smoothing: opts.smoothing ?? true, poseFilter: opts.poseFilter },
     )
     this.smoothing = opts.smoothing ?? true
@@ -398,6 +403,7 @@ export class ARManager extends Emitter<AREvents> {
   }
 
   private tapAt(clientX: number, clientY: number) {
+    this.lastTap = { x: clientX, y: clientY }
     const rect = this.container.getBoundingClientRect()
     const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1)
     this.raycaster.setFromCamera(ndc, this.camera)

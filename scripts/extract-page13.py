@@ -238,7 +238,14 @@ def main():
         crop = img_last[Y:Y + Hh, X:X + W]
         a = alpha_of(crop) * big[:crop.shape[0], :crop.shape[1]]
         bid = f'bubble-{nm}'
+        # Tail tip: the outline point furthest outside the bubble's oval (distance in half-axis units).
+        ys_, xs_ = np.where(a > 0.5)
+        cx_, cy_ = xs_.mean(), ys_.mean()
+        rx_, ry_ = np.percentile(np.abs(xs_ - cx_), 99), np.percentile(np.abs(ys_ - cy_), 99)
+        k_ = np.argmax(np.hypot((xs_ - cx_) / rx_, (ys_ - cy_) / ry_))
+        tail = [round(float(xs_[k_]) / a.shape[1], 3), round(float(ys_[k_]) / a.shape[0], 3)]
         bubbles[bid] = dict(
+            tail=tail,
             kind='bubble',
             rgb_h=last_h[y:y + h, x:x + w] * sel[..., None],
             mask_h=sel,
@@ -404,6 +411,7 @@ def main():
             'size': sp['size'],
             # poses[i] is frame `from` + i; before `from` a bubble is hidden, a fruit lives in the clip
             'from': sp.get('start', SWAP),
+            **({'tail': sp['tail']} if 'tail' in sp else {}),
             # [cx, cy, scale] per frame, in 4K video pixels
             'poses': [[r(cx), r(cy), r(s, 3)] for cx, cy, s in sp['poses']],
         })
@@ -421,6 +429,10 @@ def main():
         'paper': paper,
         'layers': layers,
     }
+    # The clip rect must have the encoded clip's shape (colour half), or it renders stretched/zoomed.
+    cr = timeline['clip']['rect']
+    if abs(cr[2] / cr[3] - cw / ch) > 0.01:
+        raise SystemExit(f'clip rect {cr} does not match takeoff.mp4 ({cw}×{ch} colour half)')
     with open(TIMELINE, 'w') as fh:
         json.dump(timeline, fh, separators=(',', ':'))
     print(f'  wrote {os.path.relpath(TIMELINE, ROOT)} ({os.path.getsize(TIMELINE) / 1e3:.0f} KB)')

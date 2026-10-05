@@ -14,8 +14,21 @@ export interface BuildContext {
 export interface ViewServices {
   /** Median camera-feed colour (sRGB) under these world-space points, or null if none are on screen. */
   sampleCamera(points: THREE.Vector3[]): THREE.Color | null
-  /** Show an image full-screen over the camera, e.g. a speech bubble to read. */
-  openCard(card: { src: string; alt: string }): void
+  /** Show a card over the camera, e.g. a fruit with its speech bubble, large enough to read. */
+  openCard(card: CardSpec): void
+}
+
+/** Images laid out in a box; rects are [x, y, w, h] in fractions of the box width (so y spans 0..aspect). */
+export interface CardSpec {
+  alt: string
+  aspect: number
+  items: {
+    src: string
+    role: 'fruit' | 'bubble'
+    rect: [x: number, y: number, w: number, h: number]
+    /** Where it grows from, as fractions of its own size (a bubble grows from its tail). */
+    origin: [x: number, y: number]
+  }[]
 }
 
 /** Per-frame timing passed to every node. `t` = seconds since the target was (re)found. */
