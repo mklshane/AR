@@ -102,6 +102,11 @@ export interface FilmContent extends Placed {
   frame: 'hex' | 'flourish' | 'script'
   /** The caption tab's colour, for frames that have one ('script'; default terracotta). */
   accent?: string
+  /**
+   * 'script' frame ornament, taken from the page: 'swash' (p30: a clay mat with halftone grain and white
+   * script swashes curling round two corners) or 'leaves' (p61: a sage mat with leafy sprigs over two corners).
+   */
+  decor?: 'swash' | 'leaves'
   /** Overall frame width in target-image pixels. */
   width: number
 }

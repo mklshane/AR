@@ -142,6 +142,7 @@ const page30: TargetConfig = {
       title: 'Yano',
       subtitle: 'Community Development Worker',
       frame: 'script',
+      decor: 'swash',
       // Over his chest, then it lifts off to fill the screen.
       at: [540, 820],
       width: 980,
@@ -291,6 +292,7 @@ const page61: TargetConfig = {
       subtitle: 'Howie Severino',
       frame: 'script',
       accent: '#5d784f', // the page's green "Kapusod" script
+      decor: 'leaves',
       // The film window over the printed portrait (x 329–993, y 257–626): frame = 664 × 1200/1060.
       at: [661, 480],
       width: 752,

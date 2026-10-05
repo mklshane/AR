@@ -20,6 +20,8 @@ interface FrameStyle {
   win: Rect
   /** Everything that's drawn (film, border, corners, caption), in canvas px; this is what fits the screen. */
   box: Rect
+  /** A per-film box, when its options change what's drawn (null: use `box`). */
+  boxFor?(c: FilmContent): Rect | null
   /** Paint everything around the window; the window itself must end up transparent. */
   draw(ctx: CanvasRenderingContext2D, c: FilmContent, duration: number, assets: AssetManager): Promise<void>
   /** Optional window shape (white = film) when it isn't a plain rectangle. */
@@ -214,6 +216,164 @@ const SC_RADIUS = 30
 const SC_KEY = 5 // white keyline, like the script's stroke
 const SC_TAB = { x: SC_WIN.x + 40, y: SC_WIN.y + SC_WIN.h - 8, h: 182 } // width follows the caption
 const TERRACOTTA = '#a8765a' // the page's warm wall, a shade deeper so white reads on it
+/** With a decor: the mat around the film (px), and the area that then fits the screen. */
+const SC_MAT = 30
+const SC_DECOR_BOX: Rect = { x: 16, y: 16, w: 1168, h: SC_TAB.y + SC_TAB.h - 16 }
+
+/** Points along a cubic Bézier. */
+function bezier(p: number[][], n: number) {
+  const out: [number, number][] = []
+  for (let i = 0; i <= n; i++) {
+    const t = i / n
+    const u = 1 - t
+    const k = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t]
+    out.push([k.reduce((s, w, j) => s + w * p[j][0], 0), k.reduce((s, w, j) => s + w * p[j][1], 0)])
+  }
+  return out
+}
+
+/** A calligraphic stroke along a Bézier: thin at both ends, `w` px at its widest. */
+function ribbon(ctx: CanvasRenderingContext2D, p: number[][], w: number) {
+  const pts = bezier(p, 80)
+  const left: [number, number][] = []
+  const right: [number, number][] = []
+  pts.forEach(([x, y], i) => {
+    const [ax, ay] = pts[Math.max(0, i - 1)]
+    const [bx, by] = pts[Math.min(pts.length - 1, i + 1)]
+    const len = Math.hypot(bx - ax, by - ay) || 1
+    const [nx, ny] = [-(by - ay) / len, (bx - ax) / len]
+    const t = i / (pts.length - 1)
+    const half = (w / 2) * Math.pow(Math.sin(Math.PI * t), 0.7) + 0.6
+    left.push([x + nx * half, y + ny * half])
+    right.push([x - nx * half, y - ny * half])
+  })
+  ctx.beginPath()
+  left.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)))
+  right.reverse().forEach(([x, y]) => ctx.lineTo(x, y))
+  ctx.closePath()
+  ctx.fill()
+}
+
+/** A leafy sprig from (x, y) heading `angle` (radians), `len` px long, leaves alternating up the stem. */
+function sprig(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, len: number, bend: number, colors: string[]) {
+  const dir = [Math.cos(angle), Math.sin(angle)]
+  const nrm = [-dir[1], dir[0]]
+  const end = [x + dir[0] * len, y + dir[1] * len]
+  const mid = [x + dir[0] * len * 0.5 + nrm[0] * bend, y + dir[1] * len * 0.5 + nrm[1] * bend]
+  const stem = bezier([[x, y], mid, mid, end], 40)
+  ctx.strokeStyle = colors[0]
+  ctx.lineWidth = 6
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  stem.forEach(([sx, sy], i) => (i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy)))
+  ctx.stroke()
+  const n = 7
+  for (let i = 1; i <= n; i++) {
+    const k = i / (n + 0.6)
+    const [px, py] = stem[Math.round(k * 40)]
+    const [qx, qy] = stem[Math.min(40, Math.round(k * 40) + 1)]
+    const along = Math.atan2(qy - py, qx - px)
+    const side = i % 2 ? 1 : -1
+    const size = 72 * (1 - k * 0.5)
+    leaf(ctx, px, py, along + side * 0.75, size, colors[i % 2 ? 1 : 2])
+  }
+  leaf(ctx, end[0], end[1], angle, 62, colors[1])
+}
+
+/** One pointed leaf with a pale midrib. */
+function leaf(ctx: CanvasRenderingContext2D, x: number, y: number, a: number, size: number, color: string) {
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.rotate(a)
+  ctx.fillStyle = color
+  ctx.beginPath()
+  ctx.moveTo(0, 0)
+  ctx.quadraticCurveTo(size * 0.5, -size * 0.38, size, 0)
+  ctx.quadraticCurveTo(size * 0.5, size * 0.38, 0, 0)
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(255, 255, 240, 0.35)'
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.moveTo(size * 0.08, 0)
+  ctx.lineTo(size * 0.85, 0)
+  ctx.stroke()
+  ctx.restore()
+}
+
+/** The mat behind a decorated film: rounded, softly shadowed, with the page's texture. */
+function mat(ctx: CanvasRenderingContext2D, win: Rect, decor: 'swash' | 'leaves') {
+  const r = { x: win.x - SC_MAT, y: win.y - SC_MAT, w: win.w + 2 * SC_MAT, h: win.h + 2 * SC_MAT }
+  const shape = () => {
+    ctx.beginPath()
+    ctx.roundRect(r.x, r.y, r.w, r.h, SC_RADIUS + SC_MAT)
+  }
+  ctx.save()
+  ctx.shadowColor = 'rgba(40, 30, 20, 0.35)'
+  ctx.shadowBlur = 36
+  ctx.shadowOffsetY = 16
+  ctx.fillStyle = decor === 'swash' ? '#cf9a76' : '#c3cfb8'
+  shape()
+  ctx.fill()
+  ctx.restore()
+  ctx.save()
+  shape()
+  ctx.clip()
+  if (decor === 'swash') {
+    // The facing page's sepia halftone: dots that swell and shrink in soft waves.
+    ctx.fillStyle = 'rgba(110, 62, 36, 0.32)'
+    for (let y = r.y; y < r.y + r.h; y += 7) {
+      for (let x = r.x + ((y / 7) % 2) * 3.5; x < r.x + r.w; x += 7) {
+        const d = 1.1 + 0.9 * Math.sin(x * 0.013 + Math.sin(y * 0.02) * 2) * Math.cos(y * 0.011)
+        if (d <= 0.3) continue
+        ctx.beginPath()
+        ctx.arc(x, y, d, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+  } else {
+    // Handmade-paper grain, like the page.
+    for (let i = 0; i < 2600; i++) {
+      const x = r.x + ((i * 7919) % 1000) / 1000 * r.w
+      const y = r.y + ((i * 104729) % 1000) / 1000 * r.h
+      ctx.fillStyle = i % 3 ? 'rgba(70, 95, 60, 0.12)' : 'rgba(255, 255, 255, 0.25)'
+      ctx.fillRect(x, y, 1.5 + (i % 4), 1.5)
+    }
+  }
+  ctx.restore()
+}
+
+/** The page's ornament over two corners (top-left and bottom-right; the caption tab has the bottom-left). */
+function ornament(ctx: CanvasRenderingContext2D, win: Rect, decor: 'swash' | 'leaves') {
+  const [l, t, r, b] = [win.x, win.y, win.x + win.w, win.y + win.h]
+  if (decor === 'swash') {
+    // White script swashes, like the big "Yano" stroke sweeping across the page.
+    ctx.fillStyle = '#ffffff'
+    ctx.save()
+    ctx.shadowColor = 'rgba(80, 40, 20, 0.35)'
+    ctx.shadowBlur = 6
+    ctx.shadowOffsetY = 2
+    ribbon(ctx, [[l + 380, t - 44], [l + 60, t - 74], [l - 64, t - 6], [l - 30, t + 200]], 24)
+    ribbon(ctx, [[l - 30, t + 200], [l - 8, t + 270], [l + 50, t + 140], [l - 4, t + 66]], 13)
+    ribbon(ctx, [[r - 420, b + 48], [r - 60, b + 78], [r + 66, b + 6], [r + 32, b - 220]], 24)
+    ribbon(ctx, [[r + 32, b - 220], [r + 10, b - 290], [r - 48, b - 160], [r + 4, b - 76]], 13)
+    ctx.restore()
+  } else {
+    // Leafy sprigs, the retreat's jungle growing in over the corners.
+    const greens = ['#3f5a34', '#5d784f', '#87a56b']
+    const deep = ['#33492b', '#4b663f', '#6f8f58']
+    ctx.save()
+    ctx.shadowColor = 'rgba(20, 40, 15, 0.35)'
+    ctx.shadowBlur = 8
+    ctx.shadowOffsetY = 3
+sprig(ctx, l - 44, t - 34, 0.1, 400, -36, greens)
+    sprig(ctx, l - 44, t - 34, 1.45, 300, 32, deep)
+    sprig(ctx, l - 44, t - 34, 0.78, 230, 12, greens)
+    sprig(ctx, r + 44, b + 34, Math.PI + 0.1, 400, -36, deep)
+    sprig(ctx, r + 44, b + 34, Math.PI + 1.45, 300, 32, greens)
+    sprig(ctx, r + 44, b + 34, Math.PI + 0.78, 230, 12, deep)
+    ctx.restore()
+  }
+}
 
 const script: FrameStyle = {
   size: [1200, 860],
@@ -224,6 +384,7 @@ const script: FrameStyle = {
     w: SC_WIN.w + 2 * SC_KEY,
     h: SC_TAB.y + SC_TAB.h - (SC_WIN.y - SC_KEY),
   },
+  boxFor: (c) => (c.decor ? SC_DECOR_BOX : null),
   async draw(ctx, c, duration) {
     const win = SC_WIN
     await loadFonts('110px "Miss Fajardose"', '600 20px Montserrat')
@@ -241,6 +402,9 @@ const script: FrameStyle = {
     ctx.beginPath()
     ctx.roundRect(tab.x, tab.y, tab.w, tab.h, [0, 0, 22, 22])
     ctx.fill()
+    ctx.restore()
+    if (c.decor) mat(ctx, win, c.decor)
+    ctx.save()
     // White keyline with a soft shadow; the window is punched out below.
     ctx.shadowColor = 'rgba(60, 36, 22, 0.4)'
     ctx.shadowBlur = 40
@@ -255,7 +419,15 @@ const script: FrameStyle = {
     ctx.roundRect(win.x, win.y, win.w, win.h, SC_RADIUS)
     ctx.fill()
     ctx.globalCompositeOperation = 'source-over'
+    if (c.decor) ornament(ctx, win, c.decor)
 
+    // The caption tab over the mat, so its text sits on the tab's colour.
+    if (c.decor) {
+      ctx.fillStyle = c.accent ?? TERRACOTTA
+      ctx.beginPath()
+      ctx.roundRect(tab.x, win.y + win.h + SC_KEY, tab.w, tab.y + tab.h - (win.y + win.h + SC_KEY), [0, 0, 22, 22])
+      ctx.fill()
+    }
     ctx.fillStyle = '#ffffff'
     ctx.font = '110px "Miss Fajardose", cursive'
     ctx.fillText(c.title, tab.x + 30, tab.y + 84)
@@ -371,7 +543,7 @@ export async function buildFilm(c: FilmContent, { page, assets, view }: BuildCon
 
   // Scratch for the per-frame page → screen blend.
   const { camera } = view
-  const box = style.box
+  const box = style.boxFor?.(c) ?? style.box
   const boxCentre = new THREE.Vector3(cx(box.x + box.w / 2), cy(box.y + box.h / 2), 0)
   const onPage = { pos: new THREE.Vector3(), quat: new THREE.Quaternion(), scale: new THREE.Vector3() }
   const onScreen = { pos: new THREE.Vector3(), quat: new THREE.Quaternion(), scale: new THREE.Vector3() }
