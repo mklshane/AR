@@ -237,7 +237,7 @@ const script: FrameStyle = {
     ctx.shadowColor = 'rgba(60, 36, 22, 0.35)'
     ctx.shadowBlur = 24
     ctx.shadowOffsetY = 10
-    ctx.fillStyle = TERRACOTTA
+    ctx.fillStyle = c.accent ?? TERRACOTTA
     ctx.beginPath()
     ctx.roundRect(tab.x, tab.y, tab.w, tab.h, [0, 0, 22, 22])
     ctx.fill()

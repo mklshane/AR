@@ -100,6 +100,8 @@ export interface FilmContent extends Placed {
   subtitle?: string
   /** Frame style: 'hex' (p15's hexagon photo crops), 'flourish' (p24's white baroque corners) or 'script' (p30's white script name). */
   frame: 'hex' | 'flourish' | 'script'
+  /** The caption tab's colour, for frames that have one ('script'; default terracotta). */
+  accent?: string
   /** Overall frame width in target-image pixels. */
   width: number
 }

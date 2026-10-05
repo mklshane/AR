@@ -273,7 +273,33 @@ const page58: TargetConfig = {
   ],
 }
 
+/** p61 "Kapusod": Howie Severino's docufilm pops up over his printed portrait, captioned on the page's leaf green. */
+const page61: TargetConfig = {
+  id: 'page61',
+  targetIndex: 12,
+  title: 'Kapusod',
+  image: '/magazine/p61.webp',
+  size: [1080, 1485],
+  prefetch: false,
+  content: [
+    {
+      type: 'film',
+      id: 'kapusod',
+      src: '/videos/kapusod.mp4',
+      poster: '/ar/p61/poster.webp',
+      title: 'Kapusod',
+      subtitle: 'Howie Severino',
+      frame: 'script',
+      accent: '#5d784f', // the page's green "Kapusod" script
+      // The film window over the printed portrait (x 329–993, y 257–626): frame = 664 × 1200/1060.
+      at: [661, 480],
+      width: 752,
+      lift: 0.02,
+    },
+  ],
+}
+
 export const experience: ExperienceConfig = {
   mindFile: '/targets/targets.mind',
-  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41, page52, page58],
+  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41, page52, page58, page61],
 }
