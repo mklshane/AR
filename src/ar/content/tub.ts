@@ -41,7 +41,9 @@ function shadowTexture() {
   return new THREE.CanvasTexture(canvas)
 }
 
-const MAX_FACE = THREE.MathUtils.degToRad(40)
+const MAX_FACE = THREE.MathUtils.degToRad(18)
+/** The tub's depth, squashed: at full depth it stood so tall off the page that slanted views saw mostly wall. */
+const DEPTH = 0.65
 const Z_AXIS = new THREE.Vector3(0, 0, 1)
 
 export async function buildTub(c: TubContent, { page, assets, view }: BuildContext): Promise<ContentNode> {
@@ -100,9 +102,10 @@ export async function buildTub(c: TubContent, { page, assets, view }: BuildConte
   const axis = new THREE.Vector3()
   const faceTo = new THREE.Quaternion()
   turn.rotation.z = Math.PI / 2
+  turn.scale.z = DEPTH
   turn.add(model)
-  // Turned to face the phone (up to MAX_FACE), so a reader looking at the page from a slant sees the lid,
-  // not the tub's side wall. Pivots on the tub's base and lifts so the tipped side stays above the page.
+  // Turned a little to face the phone (up to MAX_FACE), so a reader looking from a slant sees more lid and
+  // less side wall. Pivots on the base; the edge that dips is the far one, hidden behind the tub itself.
   const face = new THREE.Group()
   face.add(turn)
   group.add(face)
@@ -216,9 +219,6 @@ export async function buildTub(c: TubContent, { page, assets, view }: BuildConte
         if (axis.lengthSq() > 1e-8) faceTo.setFromAxisAngle(axis.normalize(), angle)
         else faceTo.identity()
         face.quaternion.slerp(faceTo, 1 - Math.exp(-6 * dt))
-        // Lift by how far the tipped base edge would dip below the page.
-        const tilt = 2 * Math.acos(Math.min(1, Math.abs(face.quaternion.w)))
-        face.position.z = Math.sin(tilt) * Math.max(tubSize.x, tubSize.y) * 0.5
       }
       now = time
       const pop = Math.max(0.001, easeOutBack(intro(t, c.delay, 0.8)))
