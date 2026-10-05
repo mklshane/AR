@@ -9,7 +9,7 @@ import { type BuildContext, type ContentNode, Pulse, clamp01, disposeObject } fr
  *
  * - Drop a piece on the doll (or just tap it) and it snaps on with a click.
  * - One outfit at a time: putting on another sends the current one gliding back to its spot.
- * - Drag a worn piece off (or tap it) to take it off. Shoes are their own slot and stay on once worn.
+ * - Drag a worn piece off (or tap it) to take it off. Shoes are their own slot, so outfits don't swap them.
  */
 
 /** Lift above the page for each state, in anchor units (page width = 1). */
@@ -55,6 +55,48 @@ interface Piece {
   snap: Pulse
 }
 
+const MAGENTA = '#a3248f' // the page's title
+const INK = '#3a2233'
+
+/** A white paper tag with a strip of pink washi tape, like something stuck on the page. */
+async function noteTexture(title: string, hint: string) {
+  await Promise.all(['700 64px Montserrat', '500 31px Montserrat'].map((f) => document.fonts?.load(f).catch(() => undefined)))
+  const W = 800
+  const H = 236
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = H
+  const ctx = canvas.getContext('2d')!
+  ctx.save()
+  ctx.shadowColor = 'rgba(70, 20, 60, 0.3)'
+  ctx.shadowBlur = 18
+  ctx.shadowOffsetY = 8
+  ctx.fillStyle = '#fffaf6'
+  ctx.beginPath()
+  ctx.roundRect(24, 40, W - 48, H - 70, 14)
+  ctx.fill()
+  ctx.restore()
+  // Washi tape across the top, slightly askew, with faint stripes.
+  ctx.save()
+  ctx.translate(W / 2, 44)
+  ctx.rotate(-0.04)
+  ctx.fillStyle = 'rgba(236, 140, 200, 0.75)'
+  ctx.fillRect(-90, -22, 180, 44)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.35)'
+  for (let x = -84; x < 90; x += 22) ctx.fillRect(x, -22, 8, 44)
+  ctx.restore()
+  ctx.textAlign = 'center'
+  ctx.fillStyle = MAGENTA
+  ctx.font = '700 64px Montserrat, system-ui, sans-serif'
+  ctx.fillText(title, W / 2, 132)
+  ctx.fillStyle = INK
+  ctx.font = '500 31px Montserrat, system-ui, sans-serif'
+  ctx.fillText(hint, W / 2, 182)
+  const map = new THREE.CanvasTexture(canvas)
+  map.colorSpace = THREE.SRGBColorSpace
+  return { map, aspect: H / W }
+}
+
 export async function buildPaperDoll(c: PaperDollContent, { page, assets }: BuildContext): Promise<ContentNode> {
   const group = new THREE.Group()
   group.position.z = c.lift ?? 0
@@ -65,6 +107,17 @@ export async function buildPaperDoll(c: PaperDollContent, { page, assets }: Buil
   const cover = new THREE.Mesh(new THREE.PlaneGeometry(1, page.height / page.width), coverMat)
   cover.position.z = 0.0005
   group.add(cover)
+
+  // The note floats just above the page's top edge (so it covers nothing), tilted a touch, bobbing gently.
+  let note: THREE.Mesh | null = null
+  if (c.note) {
+    const { map, aspect } = await noteTexture(c.note.title, c.note.hint)
+    const w = page.len(700)
+    note = new THREE.Mesh(new THREE.PlaneGeometry(w, w * aspect), new THREE.MeshBasicMaterial({ map, transparent: true, opacity: 0, depthWrite: false, toneMapped: false }))
+    note.position.set(...page.point([540, -95]), 0.02)
+    note.rotation.z = 0.035
+    group.add(note)
+  }
 
   const at = (px: [number, number], z: number) => new THREE.Vector3(...page.point(px), z)
   const [bx, by, bw, bh] = c.body
@@ -129,13 +182,18 @@ export async function buildPaperDoll(c: PaperDollContent, { page, assets }: Buil
     sfx.snap()
   }
 
-  const locked = (p: Piece) => p.state === 'worn' && p.cfg.slot === 'shoes'
-
   return {
     object: group,
     update({ t, dt, time }) {
       now = time
       coverMat.opacity = clamp01(t / 0.35)
+      if (note) {
+        const pop = clamp01((t - 0.5) / 0.5)
+        ;(note.material as THREE.MeshBasicMaterial).opacity = pop
+        note.scale.setScalar(0.85 + 0.15 * (1 - (1 - pop) ** 3))
+        note.position.z = 0.02 + 0.004 * Math.sin(time * 1.6)
+        note.rotation.z = 0.035 + 0.012 * Math.sin(time * 1.1)
+      }
       for (const p of pieces) {
         const k = 1 - Math.exp(-(p.state === 'held' ? FOLLOW : SETTLE) * dt)
         p.pos.lerp(p.to, k)
@@ -154,10 +212,6 @@ export async function buildPaperDoll(c: PaperDollContent, { page, assets }: Buil
     onDragStart(hit, point) {
       const piece = byMesh.get(hit.object)
       if (!piece) return false // the cover: let the view pan/zoom instead
-      if (locked(piece)) {
-        piece.snap.trigger(now) // a little wiggle: they're staying on
-        return true
-      }
       if (held) return false
       held = { piece, grab: piece.pos.clone().sub(point).setZ(0), start: point.clone(), moved: false, was: piece.state }
       if (piece.state === 'worn') sfx.swish()

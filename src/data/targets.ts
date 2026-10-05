@@ -174,15 +174,17 @@ const page39: TargetConfig = {
       type: 'paper-doll',
       id: 'thrift-up-doll',
       cover: '/ar/p39/page.webp',
+      note: { title: 'Dress me up!', hint: 'Drag clothes onto me · tap to take off' },
       // The doll's cut-out, generously: dropping anywhere on her counts.
       body: [60, 260, 310, 1200],
       // Worn positions and scales were fitted by overlaying each piece on the doll.
       pieces: [
-        { id: 'vest', src: '/ar/p39/vest.webp', home: [540, 530], width: 227, worn: [219, 697], wornScale: 0.98, slot: 'outfit' },
-        { id: 'leopard', src: '/ar/p39/halfbody.webp', home: [541, 917], width: 285, worn: [219, 726], wornScale: 0.94, slot: 'outfit' },
-        { id: 'pink', src: '/ar/p39/pink.webp', home: [872, 654], width: 289, worn: [219, 857], wornScale: 1.12, slot: 'outfit' },
-        { id: 'denim', src: '/ar/p39/denim.webp', home: [870, 1199], width: 353, worn: [221, 689], wornScale: 1.0, slot: 'outfit' },
-        { id: 'shoes', src: '/ar/p39/shoes.webp', home: [520, 1281], width: 223, worn: [201, 1350], wornScale: 0.66, slot: 'shoes' },
+        // Tops cover her shoulders up to the neck; the jeans reach the shoes, which sit over her feet.
+        { id: 'vest', src: '/ar/p39/vest.webp', home: [540, 530], width: 227, worn: [219, 686], wornScale: 1.0, slot: 'outfit' },
+        { id: 'leopard', src: '/ar/p39/halfbody.webp', home: [541, 917], width: 285, worn: [219, 716], wornScale: 0.97, slot: 'outfit' },
+        { id: 'pink', src: '/ar/p39/pink.webp', home: [872, 654], width: 289, worn: [219, 881], wornScale: 1.24, slot: 'outfit' },
+        { id: 'denim', src: '/ar/p39/denim.webp', home: [870, 1199], width: 353, worn: [221, 673], wornScale: 1.03, slot: 'outfit' },
+        { id: 'shoes', src: '/ar/p39/shoes.webp', home: [520, 1281], width: 223, worn: [203, 1339], wornScale: 0.86, slot: 'shoes' },
       ],
     },
   ],

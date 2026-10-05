@@ -132,7 +132,7 @@ export interface PaperDollPiece {
   /** Where its centre sits when worn, and its scale there (pieces are cut close to the doll's size). */
   worn: Px
   wornScale: number
-  /** One piece per slot: a new outfit replaces the current one. Shoes stay on once worn. */
+  /** One piece per slot: a new outfit replaces the current one but leaves the shoes on. */
   slot: 'outfit' | 'shoes'
 }
 
@@ -142,6 +142,8 @@ export interface PaperDollContent {
   id: string
   /** The page art without its clothes, covering the printed page. */
   cover: string
+  /** A little paper note floating above the page, telling the reader what to do. */
+  note?: { title: string; hint: string }
   /** Drop zone over the doll: [x, y, w, h] in target-image pixels. */
   body: [x: number, y: number, w: number, h: number]
   pieces: PaperDollPiece[]
