@@ -16,6 +16,20 @@ export interface ViewServices {
   sampleCamera(points: THREE.Vector3[]): THREE.Color | null
   /** Show a card over the camera, e.g. a fruit with its speech bubble, large enough to read. */
   openCard(card: CardSpec): void
+  /** A film came into view (or left: null), so the UI can offer sound and full-screen controls. */
+  setFilm(film: FilmHandle | null): void
+}
+
+/** A film playing on a page, which the UI may take full-screen (the same element, so time carries over). */
+export interface FilmHandle {
+  video: HTMLVideoElement
+  title: string
+  /** Sound on/off (a tap, so unmuting is allowed). */
+  toggleSound(): void
+  /** Move the film into a full-screen player's slot, with sound; it keeps playing off the page. */
+  enterPlayer(slot: HTMLElement): void
+  /** Back to the AR card: carries on there if the page is in view, otherwise waits for it. */
+  exitPlayer(): void
 }
 
 /** Images laid out in a box; rects are [x, y, w, h] in fractions of the box width (so y spans 0..aspect). */

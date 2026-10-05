@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { Landing } from './components/Landing'
 import { LoadingScreen } from './components/LoadingScreen'
 import { preloadWhenIdle } from './ar/preload'
+import { unlockMedia } from './ar/mediaUnlock'
 import { experience } from './data/targets'
 
 // Three.js + MindAR stay out of the landing bundle; they're prefetched in idle time instead.
@@ -29,7 +30,12 @@ export default function App() {
     return () => clearTimeout(id)
   }, [])
   const toLanding = () => setView('landing')
-  if (view === 'landing') return <Landing onStart={() => setView('ar')} onRead={() => setView('magazine')} />
+  const openCamera = () => {
+    // Runs inside the "Open camera" tap: the only moment iOS lets us unlock video sound for later.
+    unlockMedia()
+    setView('ar')
+  }
+  if (view === 'landing') return <Landing onStart={openCamera} onRead={() => setView('magazine')} />
   if (view === 'magazine') {
     return (
       <Suspense fallback={<div className="fixed inset-0 bg-forest" />}>

@@ -6,7 +6,7 @@ import type { PoseFilterOptions } from './PoseFilter'
 import { preloadEngine, preloadTargets } from './preload'
 import { TargetManager } from './TargetManager'
 import type { ExperienceConfig, TargetConfig } from './types'
-import type { CardSpec } from './content/ContentNode'
+import type { CardSpec, FilmHandle } from './content/ContentNode'
 
 export type ARStatus = 'idle' | 'loading' | 'scanning' | 'tracking' | 'error'
 
@@ -45,6 +45,8 @@ interface AREvents extends Record<string, unknown> {
   card: ARCard
   /** Current pinch zoom (1 = none). */
   zoom: number
+  /** A film is in view (or null). */
+  film: FilmHandle | null
 }
 
 export interface AROptions {
@@ -103,7 +105,11 @@ export class ARManager extends Emitter<AREvents> {
         if (event === 'contentError' && 'ids' in payload) this.emit('contentError', payload.ids)
         this.setStatus(this.targets.anyVisible ? 'tracking' : 'scanning')
       },
-      { sampleCamera: (p) => this.sampleCamera(p), openCard: (c) => this.emit('card', { ...c, from: this.lastTap }) },
+      {
+        sampleCamera: (p) => this.sampleCamera(p),
+        openCard: (c) => this.emit('card', { ...c, from: this.lastTap }),
+        setFilm: (f) => this.emit('film', f),
+      },
       { debug: opts.debug, smoothing: opts.smoothing ?? true, poseFilter: opts.poseFilter },
     )
     this.smoothing = opts.smoothing ?? true

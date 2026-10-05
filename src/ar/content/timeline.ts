@@ -79,27 +79,11 @@ export async function buildTimeline(c: TimelineContent, { page, assets, view }: 
   const paperTone = new THREE.Color(1, 1, 1)
   let paperAt = -Infinity
 
-  // Take-off clip: colour in the top half, alpha (grey) in the bottom half.
-  const video = document.createElement('video')
-  Object.assign(video, { muted: true, playsInline: true, preload: 'auto', crossOrigin: 'anonymous' })
-  video.setAttribute('playsinline', '')
-  video.setAttribute('muted', '')
-  video.src = tl.clip.src
-  await new Promise<void>((resolve, reject) => {
-    if (video.readyState >= 1) return resolve()
-    video.onloadedmetadata = () => resolve()
-    video.onerror = () => reject(new Error(`Could not load video ${tl.clip.src}`))
-    video.load()
-  })
-  const colorTex = new THREE.VideoTexture(video)
-  colorTex.colorSpace = THREE.SRGBColorSpace
-  colorTex.repeat.set(1, 0.5)
-  colorTex.offset.set(0, 0.5)
-  const alphaTex = new THREE.VideoTexture(video)
-  alphaTex.repeat.set(1, 0.5)
+  // Take-off clip (colour on top, alpha below), shared with any other target showing this timeline.
+  const pb = await Playback.acquire(c.src, tl.clip.src, swapT)
   const clip = new THREE.Mesh(
     rectPlane(tl.clip.rect),
-    new THREE.MeshBasicMaterial({ map: colorTex, alphaMap: alphaTex, transparent: true, depthWrite: false }),
+    new THREE.MeshBasicMaterial({ map: pb.colorTex, alphaMap: pb.alphaTex, transparent: true, depthWrite: false }),
   )
   placeRect(clip, tl.clip.rect, Z.clip)
   clip.renderOrder = -1
@@ -139,56 +123,11 @@ export async function buildTimeline(c: TimelineContent, { page, assets, view }: 
     return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u]
   }
 
-  // The clip is the clock while it plays (it may start late or stall); afterwards scan time takes over
-  // from the moment of the swap, so the sprites pick up exactly where the clip left off.
-  let phase: 'clip' | 'sprites' = 'clip'
-  let lag = 0
-  let waitFrom = 0
-  /** Set on every show: line the animation up with the (possibly shared) scan clock on the next tick. */
-  let resync = true
-  let shown = false
-  /** Start (or join, when the tracker switches between page and close-up mid-way) at scan time t. */
-  const restart = (t: number) => {
-    if (t >= swapT) {
-      if (phase !== 'sprites') lag = 0
-      phase = 'sprites'
-      video.pause()
-      return
-    }
-    phase = 'clip'
-    waitFrom = t
-    video.currentTime = t
-    if (shown) void video.play().catch(() => undefined)
-  }
-
   return {
     object: group,
     update({ t, time }) {
-      // t is back near 0 when the page is re-found after a while, so this replays from the full basket.
-      if (resync) {
-        resync = false
-        restart(t)
-      }
-
-      let tau: number
-      const clipLive = phase === 'clip' && video.readyState >= 2 && video.currentTime > 0
-      if (phase === 'clip') {
-        if (video.ended || video.currentTime >= swapT) {
-          phase = 'sprites'
-          lag = t - swapT
-          tau = swapT
-        } else if (clipLive) {
-          tau = video.currentTime
-        } else if (t - waitFrom > CLIP_TIMEOUT) {
-          // Autoplay refused or the clip never arrived: show the landed state rather than nothing.
-          phase = 'sprites'
-          lag = t - swapT
-          tau = swapT
-        } else tau = 0
-      } else tau = t - lag
-
+      const { tau, clipLive, landed } = pb.tick(t)
       const frame = tau * tl.fps
-      const landed = phase === 'sprites'
       clip.visible = clipLive && !landed
       patch.visible = clipLive || landed
 
@@ -201,7 +140,6 @@ export async function buildTimeline(c: TimelineContent, { page, assets, view }: 
         if (seen) paperTone.lerp(seen, paperTone.equals(WHITE) ? 1 : 0.5)
         ;(patch.material as THREE.MeshBasicMaterial).color.copy(paperTone)
       }
-      if (landed && !video.paused) video.pause()
 
       for (const s of sprites) {
         const { layer, mesh, shadow } = s
@@ -240,21 +178,119 @@ export async function buildTimeline(c: TimelineContent, { page, assets, view }: 
       const fruit = sprites.find((f) => f.layer.kind === 'fruit' && bubble.layer.id === `bubble-${f.layer.id}`)
       view.openCard(cardFor(bubble.layer, fruit?.layer, c.captions?.[bubble.layer.id] ?? bubble.layer.id.replace('bubble-', '')))
     },
-    onShow: () => {
-      shown = true
-      resync = true
-    },
-    onHide: () => {
-      shown = false
-      video.pause()
-    },
+    onShow: () => pb.show(),
+    onHide: () => pb.hide(),
     dispose: () => {
       disposeObject(group)
-      colorTex.dispose()
-      alphaTex.dispose()
-      video.removeAttribute('src')
-      video.load()
+      pb.release()
     },
+  }
+}
+
+/**
+ * The take-off clip and the animation clock for one timeline. Shared by every target showing it (a page
+ * and its close-up crop), so when the tracker switches between them mid-animation nothing restarts.
+ */
+class Playback {
+  private static all = new Map<string, Playback>()
+  readonly video: HTMLVideoElement
+  readonly colorTex: THREE.VideoTexture
+  readonly alphaTex: THREE.VideoTexture
+  private refs = 0
+  private shown = 0
+  private phase: 'clip' | 'sprites' = 'clip'
+  /** Scan time minus animation time once the sprites have taken over (the clip may start late or stall). */
+  private lag = 0
+  private waitFrom = 0
+  private lastT = Infinity
+  private readonly key: string
+  private readonly swapT: number
+
+  static async acquire(key: string, clipSrc: string, swapT: number): Promise<Playback> {
+    let pb = Playback.all.get(key)
+    if (!pb) {
+      pb = new Playback(key, clipSrc, swapT)
+      Playback.all.set(key, pb)
+    }
+    pb.refs++
+    await pb.ready.catch((e) => {
+      pb.release()
+      throw e
+    })
+    return pb
+  }
+
+  private readonly ready: Promise<void>
+
+  private constructor(key: string, clipSrc: string, swapT: number) {
+    this.key = key
+    this.swapT = swapT
+    const video = document.createElement('video')
+    Object.assign(video, { muted: true, playsInline: true, preload: 'auto', crossOrigin: 'anonymous' })
+    video.setAttribute('playsinline', '')
+    video.setAttribute('muted', '')
+    video.src = clipSrc
+    this.video = video
+    this.ready = new Promise<void>((resolve, reject) => {
+      if (video.readyState >= 1) return resolve()
+      video.onloadedmetadata = () => resolve()
+      video.onerror = () => reject(new Error(`Could not load video ${clipSrc}`))
+      video.load()
+    })
+    this.colorTex = new THREE.VideoTexture(video)
+    this.colorTex.colorSpace = THREE.SRGBColorSpace
+    this.colorTex.repeat.set(1, 0.5)
+    this.colorTex.offset.set(0, 0.5)
+    this.alphaTex = new THREE.VideoTexture(video)
+    this.alphaTex.repeat.set(1, 0.5)
+  }
+
+  /** Animation time for scan time t. The clip is the clock while it plays; then scan time, offset by lag. */
+  tick(t: number): { tau: number; clipLive: boolean; landed: boolean } {
+    // The shared scan clock only drops back when the page is re-found after a while: replay from the basket.
+    if (t < this.lastT - 0.25) this.restart(t)
+    this.lastT = t
+    const { video, swapT } = this
+    let tau: number
+    let clipLive = false
+    if (this.phase === 'clip') {
+      clipLive = video.readyState >= 2 && video.currentTime > 0
+      if (video.ended || video.currentTime >= swapT || (!clipLive && t - this.waitFrom > CLIP_TIMEOUT)) {
+        // Clip done — or autoplay refused / never arrived: show the landed state rather than nothing.
+        this.phase = 'sprites'
+        this.lag = t - swapT
+        video.pause()
+        clipLive = false
+        tau = swapT
+      } else tau = clipLive ? video.currentTime : 0
+    } else tau = t - this.lag
+    return { tau, clipLive, landed: this.phase === 'sprites' }
+  }
+
+  private restart(t: number) {
+    this.phase = 'clip'
+    this.waitFrom = t
+    this.video.currentTime = 0
+    if (this.shown) void this.video.play().catch(() => undefined)
+  }
+
+  show() {
+    this.shown++
+    if (this.phase === 'clip') void this.video.play().catch(() => undefined)
+  }
+
+  hide() {
+    this.shown = Math.max(0, this.shown - 1)
+    if (!this.shown) this.video.pause()
+  }
+
+  release() {
+    if (--this.refs > 0) return
+    Playback.all.delete(this.key)
+    this.colorTex.dispose()
+    this.alphaTex.dispose()
+    this.video.removeAttribute('src')
+    this.video.load()
   }
 }
 

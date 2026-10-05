@@ -6,6 +6,9 @@ import { ErrorScreen } from './ErrorScreen'
 import { LoadingScreen } from './LoadingScreen'
 import { PhotoSheet } from './PhotoSheet'
 import { ReadCard } from './ReadCard'
+import { FilmControls } from './FilmControls'
+import { FilmPlayer } from './FilmPlayer'
+import type { FilmHandle } from '../ar/content/ContentNode'
 import { ScanOverlay } from './ScanOverlay'
 import { Leaf } from './Leaf'
 import { TrackingHud } from './TrackingHud'
@@ -35,6 +38,8 @@ export function CameraUI({ config, debug, smoothing, onExit }: Props) {
   const [attempt, setAttempt] = useState(0)
   const [card, setCard] = useState<ARCard | null>(null)
   const [zoom, setZoom] = useState(1)
+  const [film, setFilm] = useState<FilmHandle | null>(null)
+  const [watching, setWatching] = useState<FilmHandle | null>(null)
 
   useEffect(() => {
     // Tuning: ?pf=minCutoff,maxCutoff,beta,noiseSigma,motionSigma (works on deployed builds, for phone tests)
@@ -56,6 +61,7 @@ export function CameraUI({ config, debug, smoothing, onExit }: Props) {
       ar.on('contentError', (ids) => console.warn('[ar] some content failed to load:', ids)),
       ar.on('card', setCard),
       ar.on('zoom', setZoom),
+      ar.on('film', setFilm),
     ]
     ar.start()
     return () => {
@@ -118,7 +124,9 @@ export function CameraUI({ config, debug, smoothing, onExit }: Props) {
 
       {showHud && <TrackingHud manager={getManager} />}
       <ARControls onClose={onExit} onCapture={ready ? capture : undefined} />
+      {film && !watching && ready && <FilmControls film={film} onWatch={() => setWatching(film)} />}
       {card && <ReadCard card={card} onClose={() => setCard(null)} />}
+      {watching && <FilmPlayer film={watching} onClose={() => setWatching(null)} />}
       {error && <ErrorScreen code={error} onRetry={retry} onBack={onExit} />}
       {photo && (
         <PhotoSheet
