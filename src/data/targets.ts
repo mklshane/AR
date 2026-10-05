@@ -314,6 +314,7 @@ const page68: TargetConfig = {
       // The clip draws the painting 1/1.207 of its printed size; registered (SIFT) so it lands on the print.
       at: [559, 663],
       width: 1304,
+      loop: true,
     },
   ],
 }
