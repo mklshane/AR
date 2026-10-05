@@ -41,6 +41,9 @@ function shadowTexture() {
   return new THREE.CanvasTexture(canvas)
 }
 
+const MAX_FACE = THREE.MathUtils.degToRad(40)
+const Z_AXIS = new THREE.Vector3(0, 0, 1)
+
 export async function buildTub(c: TubContent, { page, assets, view }: BuildContext): Promise<ContentNode> {
   const gltf = await assets.gltf(c.asset)
   const model = cloneSkinned(gltf.scene)
@@ -93,9 +96,16 @@ export async function buildTub(c: TubContent, { page, assets, view }: BuildConte
   // Turned a quarter anticlockwise so its length runs up the page like the tray, with the fish's head
   // at the top like the printed ones. In this turned space, model −y points to the page's right.
   const turn = new THREE.Group()
+  const camDir = new THREE.Vector3()
+  const axis = new THREE.Vector3()
+  const faceTo = new THREE.Quaternion()
   turn.rotation.z = Math.PI / 2
   turn.add(model)
-  group.add(turn)
+  // Turned to face the phone (up to MAX_FACE), so a reader looking at the page from a slant sees the lid,
+  // not the tub's side wall. Pivots on the tub's base and lifts so the tipped side stays above the page.
+  const face = new THREE.Group()
+  face.add(turn)
+  group.add(face)
   const k = page.len(c.length) / tubSize.x // model units → anchor units
 
   // Soft contact shadows: one under the tub, one under the lid once it's set down.
@@ -195,6 +205,21 @@ export async function buildTub(c: TubContent, { page, assets, view }: BuildConte
   return {
     object: group,
     update({ t, dt, time }) {
+      // Face the camera: its direction in the tub's (page) space, clamped to MAX_FACE from straight up.
+      if (group.parent) {
+        view.camera.updateMatrixWorld()
+        group.updateWorldMatrix(true, false)
+        camDir.setFromMatrixPosition(view.camera.matrixWorld)
+        group.worldToLocal(camDir).normalize()
+        const angle = Math.min(MAX_FACE, camDir.angleTo(Z_AXIS))
+        axis.crossVectors(Z_AXIS, camDir)
+        if (axis.lengthSq() > 1e-8) faceTo.setFromAxisAngle(axis.normalize(), angle)
+        else faceTo.identity()
+        face.quaternion.slerp(faceTo, 1 - Math.exp(-6 * dt))
+        // Lift by how far the tipped base edge would dip below the page.
+        const tilt = 2 * Math.acos(Math.min(1, Math.abs(face.quaternion.w)))
+        face.position.z = Math.sin(tilt) * Math.max(tubSize.x, tubSize.y) * 0.5
+      }
       now = time
       const pop = Math.max(0.001, easeOutBack(intro(t, c.delay, 0.8)))
       group.scale.setScalar(k * pop)
