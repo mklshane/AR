@@ -133,7 +133,7 @@ body,
 .film-player.is-open { opacity: 1; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .scan-line, .pop-in, .rock, .swim, .buzz { animation: none; }
+  .pop-in, .rock, .swim, .buzz { animation: none; }
   .film-player { transform: none; }
   .read-card, .read-card.is-closing { transform: none !important; transition: opacity 200ms ease; }
   .read-card-fruit.is-in, .read-card-bubble.is-in, .read-card-fruit.is-in img { animation: none; opacity: 1; }
