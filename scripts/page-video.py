@@ -7,6 +7,9 @@ page-sized AR clip, lined up with the print. Two outputs:
                  layout). The printed page shows through, including any printed piece the animation moved.
   --clean IMG    the pieces over IMG, a copy of the page with its printed pieces painted out: an opaque clip
                  (for the `video` type's `cover` mode) that hides the print's poses completely.
+  --under-frame  for an opaque animation of a page's picture that sits *inside* printed framing (borders,
+                 a title banner): the animation plays page-sized, and wherever the print differs from the
+                 animation's last frame (the framing) the print is kept on top. Opaque (`video` `cover`).
 
   1. Register the animation to the page (SIFT + a similarity transform, from one frame).
   2. Key out the white background: near-white pixels connected to the frame's edge, plus enclosed holes
@@ -71,13 +74,14 @@ def main():
     mode = ap.add_mutually_exclusive_group(required=True)
     mode.add_argument('--alpha', action='store_true', help='pieces only: colour over alpha, stacked')
     mode.add_argument('--clean', help='opaque: pieces over this page image with its pieces painted out')
+    mode.add_argument('--under-frame', action='store_true', help='opaque: the animation under the print\'s own framing')
     ap.add_argument('--ref-time', type=float, default=3.0, help='seconds into the clip of the frame to register')
     ap.add_argument('--white', type=int, default=248, help='darkest channel value still counted as background')
     ap.add_argument('--crf', type=int, default=20)
     args = ap.parse_args()
 
     page = cv2.imread(args.page)
-    clean = None if args.alpha else cv2.imread(args.clean).astype(np.float32)
+    clean = cv2.imread(args.clean).astype(np.float32) if args.clean else None
     H, W = page.shape[:2]
     cap = cv2.VideoCapture(args.anim)
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -86,11 +90,26 @@ def main():
     k = W / fw
     size = (W, int(round(fh * k)))
 
-    cap.set(cv2.CAP_PROP_POS_MSEC, args.ref_time * 1000)
+    if args.under_frame:
+        # The last frame matches the print (the animation ends on the printed picture).
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) - 3)
+    else:
+        cap.set(cv2.CAP_PROP_POS_MSEC, args.ref_time * 1000)
     ok, ref = cap.read()
     assert ok, 'could not read the reference frame'
     M = register(cv2.resize(ref, size, interpolation=cv2.INTER_AREA), page)
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+    keep = None
+    if args.under_frame:
+        # Framing = where the print isn't the animation's final picture (or outside it). Feathered.
+        last = cv2.warpAffine(cv2.resize(ref, size, interpolation=cv2.INTER_AREA), M, (W, H), borderValue=(0, 0, 0))
+        inside = cv2.warpAffine(np.ones(size[::-1], np.float32), M, (W, H), borderValue=0)
+        diff = cv2.GaussianBlur(np.abs(page.astype(np.float32) - last.astype(np.float32)).max(axis=2), (0, 0), 2)
+        frame = ((diff > 40) | (inside < 0.99)).astype(np.uint8)
+        frame = cv2.morphologyEx(frame, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))  # drop specks
+        frame = cv2.dilate(frame, np.ones((3, 3), np.uint8))
+        keep = cv2.GaussianBlur(frame.astype(np.float32), (0, 0), 1.2)[..., None]
+        clean = page.astype(np.float32)
 
     Ho = H // 2 * 2
     enc = subprocess.Popen(
@@ -107,6 +126,12 @@ def main():
         if not ok:
             break
         small = cv2.resize(frame, size, interpolation=cv2.INTER_AREA)
+        if keep is not None:
+            pic = cv2.warpAffine(small, M, (W, H), flags=cv2.INTER_LINEAR, borderValue=(0, 0, 0)).astype(np.float32)
+            out = clean * keep + pic * (1 - keep)
+            enc.stdin.write(np.clip(out[:Ho], 0, 255).astype(np.uint8).tobytes())
+            n += 1
+            continue
         rgb, a = matte(small, args.white)
         rgb = cv2.warpAffine(rgb, M, (W, H), flags=cv2.INTER_LINEAR, borderValue=(0, 0, 0))
         a = cv2.warpAffine(a, M, (W, H), flags=cv2.INTER_LINEAR, borderValue=0)[..., None]

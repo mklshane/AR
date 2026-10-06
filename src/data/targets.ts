@@ -323,7 +323,17 @@ const page68: TargetConfig = {
   ],
 }
 
+/** p56 "Sharon, Save Me a Plate!": the fiesta table comes alive inside the page's own border (scripts/page-video.py --under-frame). */
+const page56: TargetConfig = {
+  id: 'page56',
+  targetIndex: 14,
+  title: 'Sharon, Save Me a Plate!',
+  image: '/magazine/p56.webp',
+  size: [1080, 1485],
+  content: [{ type: 'video', id: 'sharon', src: '/ar/p56/sharon.mp4', cover: true, at: [540, 742], width: 1080, loop: true }],
+}
+
 export const experience: ExperienceConfig = {
   mindFile: '/targets/targets.mind',
-  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41, page52, page58, page61, page68],
+  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41, page52, page58, page61, page68, page56],
 }
