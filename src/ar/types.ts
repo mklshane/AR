@@ -178,6 +178,34 @@ export interface PaperDollContent {
   lift?: number
 }
 
+/** One printed bee that flies: its cut-out layers (made by cutting it out of the page) and its flight loop. */
+export interface FlyingBee {
+  body: string
+  wings: string
+  /** The clean page under it, shown once it takes off. */
+  spot: string
+  /** Centre and width of the cut-out on the page (target-image pixels). */
+  at: Px
+  width: number
+  /** Where the wings join the body, as fractions of the cut-out (0..1, from its top-left). */
+  hinge: [number, number]
+  /** Centre and radii (x, y) of its flight loop, in target-image pixels. */
+  orbit: Px
+  radius: [number, number]
+  /** The drawing faces right (default: left). */
+  facesRight?: boolean
+  delay?: number
+  /** Buzz pitch (1 = normal; smaller bees higher). */
+  pitch?: number
+}
+
+/** p16's bee species: the printed bees take off and fly round the page (see content/bees.ts). */
+export interface BeesContent {
+  type: 'bees'
+  id: string
+  bees: FlyingBee[]
+}
+
 /** p58's pan on the flame, with the printed stove knob made turnable (see content/pangat.ts). */
 export interface PangatContent extends Placed {
   type: 'pangat'
@@ -244,6 +272,7 @@ export type ContentItem =
   | TubContent
   | PaperDollContent
   | PangatContent
+  | BeesContent
   | TimelineContent
   | AlphaVideoContent
   | AudioContent

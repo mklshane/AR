@@ -337,7 +337,28 @@ const page56: TargetConfig = {
   content: [{ type: 'video', id: 'sharon', src: '/ar/p56/sharon.mp4', cover: true, at: [540, 742], width: 1080, loop: true }],
 }
 
+/** p16, the bee species: the three printed bees take off and fly around the page, then land back. */
+const page16: TargetConfig = {
+  id: 'page16',
+  targetIndex: 15,
+  title: 'Laywan, Lukot, Pukyutan',
+  image: '/magazine/p16.webp',
+  size: [1080, 1485],
+  content: [
+    {
+      type: 'bees',
+      id: 'bee-species',
+      // Cut out of the page (body, wings, clean spot); positions from that cut.
+      bees: [
+        { body: '/ar/p16/laywan-body.webp', wings: '/ar/p16/laywan-wings.webp', spot: '/ar/p16/laywan-spot.webp', at: [392.5, 322.5], width: 385, hinge: [0.545, 0.4], orbit: [560, 420], radius: [330, 220], delay: 0.6 },
+        { body: '/ar/p16/lukot-body.webp', wings: '/ar/p16/lukot-wings.webp', spot: '/ar/p16/lukot-spot.webp', at: [207.5, 920], width: 225, hinge: [0.489, 0.375], orbit: [380, 860], radius: [280, 200], facesRight: true, delay: 1.4, pitch: 1.35 },
+        { body: '/ar/p16/pukyutan-body.webp', wings: '/ar/p16/pukyutan-wings.webp', spot: '/ar/p16/pukyutan-spot.webp', at: [795, 1275], width: 360, hinge: [0.653, 0.438], orbit: [680, 1150], radius: [320, 230], delay: 2.2, pitch: 0.8 },
+      ],
+    },
+  ],
+}
+
 export const experience: ExperienceConfig = {
   mindFile: '/targets/targets.mind',
-  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41, page52, page58, page61, page68, page56],
+  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41, page52, page58, page61, page68, page56, page16],
 }

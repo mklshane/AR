@@ -152,3 +152,32 @@ export function sizzle(level: number) {
   const v = Math.max(0, level) * 0.09 * (0.75 + 0.5 * Math.random())
   sizzleGain.gain.setTargetAtTime(v, sizzleGain.context.currentTime, 0.05)
 }
+
+/** A bee's buzz: a wobbling low drone, swelling and fading over `dur` seconds. */
+export function bzz(dur = 0.6, pitch = 1) {
+  const a = audio()
+  if (!a) return
+  const t = a.currentTime
+  const osc = a.createOscillator()
+  osc.type = 'sawtooth'
+  osc.frequency.setValueAtTime(190 * pitch, t)
+  osc.frequency.linearRampToValueAtTime(230 * pitch, t + dur * 0.4)
+  osc.frequency.linearRampToValueAtTime(170 * pitch, t + dur)
+  const lp = a.createBiquadFilter()
+  lp.type = 'lowpass'
+  lp.frequency.value = 900
+  const flutter = a.createOscillator()
+  flutter.frequency.value = 32
+  const depth = a.createGain()
+  depth.gain.value = 0.035
+  const g = a.createGain()
+  g.gain.setValueAtTime(0.0001, t)
+  g.gain.exponentialRampToValueAtTime(0.06, t + 0.08)
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+  flutter.connect(depth).connect(g.gain)
+  osc.connect(lp).connect(g).connect(a.destination)
+  osc.start(t)
+  flutter.start(t)
+  osc.stop(t + dur + 0.05)
+  flutter.stop(t + dur + 0.05)
+}
