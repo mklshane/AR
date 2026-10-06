@@ -69,7 +69,8 @@ const page15: TargetConfig = {
   title: 'Inside the Hive',
   image: '/magazine/p15.webp',
   size: [1080, 1485],
-  prefetch: false,
+  // Prebuilt in the background: a film only fetches its poster and the video's header up front (the
+  // video itself streams on play), so the framed poster is ready the moment the page is found.
   content: [
     {
       type: 'film',
@@ -106,7 +107,8 @@ const page24: TargetConfig = {
   title: 'Teacher Maui',
   image: '/magazine/p24.webp',
   size: [1080, 1485],
-  prefetch: false,
+  // Prebuilt in the background: a film only fetches its poster and the video's header up front (the
+  // video itself streams on play), so the framed poster is ready the moment the page is found.
   content: [
     {
       type: 'film',
@@ -132,7 +134,8 @@ const page30: TargetConfig = {
   title: 'Yano',
   image: '/magazine/p30.webp',
   size: [1080, 1485],
-  prefetch: false,
+  // Prebuilt in the background: a film only fetches its poster and the video's header up front (the
+  // video itself streams on play), so the framed poster is ready the moment the page is found.
   content: [
     {
       type: 'film',
@@ -283,7 +286,8 @@ const page61: TargetConfig = {
   title: 'Kapusod',
   image: '/magazine/p61.webp',
   size: [1080, 1485],
-  prefetch: false,
+  // Prebuilt in the background: a film only fetches its poster and the video's header up front (the
+  // video itself streams on play), so the framed poster is ready the moment the page is found.
   content: [
     {
       type: 'film',
