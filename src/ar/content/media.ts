@@ -62,7 +62,10 @@ export async function buildImage(c: ImageContent, { page, assets }: BuildContext
 /** A page-sized clip lying on the page: fades in on its first frame and plays while the page is in view. */
 function videoCover(c: VideoContent, video: HTMLVideoElement, map: THREE.VideoTexture, w: number, at: [number, number]): ContentNode {
   const mat = new THREE.MeshBasicMaterial({ map, transparent: true, opacity: 0, toneMapped: false })
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, (w * video.videoHeight) / video.videoWidth), mat)
+  const [cx, cy, cw, ch] = c.crop ?? [0, 0, 1, 1]
+  map.repeat.set(cw, ch)
+  map.offset.set(cx, 1 - cy - ch)
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, (w * video.videoHeight * ch) / (video.videoWidth * cw)), mat)
   mesh.position.set(at[0], at[1], c.lift ?? 0.0005)
   let shownAt = -1
   return {

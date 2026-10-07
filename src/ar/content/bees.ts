@@ -60,17 +60,23 @@ export async function buildBees(c: BeesContent, { page, assets, view }: BuildCon
 
   const bees: Bee[] = await Promise.all(
     c.bees.map(async (cfg, i) => {
-      const [body, wingMap, spot] = await Promise.all([assets.texture(cfg.body), assets.texture(cfg.wings), assets.texture(cfg.spot)])
+      const [body, wingMap, spot] = await Promise.all([
+        assets.texture(cfg.body),
+        assets.texture(cfg.wings),
+        cfg.spot ? assets.texture(cfg.spot) : Promise.resolve(null),
+      ])
       const img = body.image as HTMLImageElement
       const w = page.len(cfg.width)
       const h = (w * img.height) / img.width
       const home = new THREE.Vector3(...page.point(cfg.at), 0)
 
       // The clean page where the bee was printed.
-      const spotMesh = plane(spot, w, h)
-      spotMesh.position.copy(home).setZ(0.0006)
-      spotMesh.renderOrder = 1
-      group.add(spotMesh)
+      if (spot) {
+        const spotMesh = plane(spot, w, h)
+        spotMesh.position.copy(home).setZ(0.0006)
+        spotMesh.renderOrder = 1
+        group.add(spotMesh)
+      }
 
       const shadow = plane(shadowMap, w * 0.8, h * 0.5)
       shadow.renderOrder = 2
@@ -157,7 +163,7 @@ export async function buildBees(c: BeesContent, { page, assets, view }: BuildCon
     object: group,
     update({ t, dt, time }) {
       now = time
-      if (time - paperAt > PAPER_EVERY) {
+      if (spots.length && time - paperAt > PAPER_EVERY) {
         paperAt = time
         group.updateWorldMatrix(true, false)
         paperWorld.forEach((w, i) => w.copy(paperPoints[i]).applyMatrix4(group.matrixWorld))

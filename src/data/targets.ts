@@ -1,4 +1,4 @@
-import type { ExperienceConfig, TargetConfig, TimelineContent } from '../ar/types'
+import type { ExperienceConfig, FlyingBee, Px, TargetConfig, TimelineContent } from '../ar/types'
 
 /**
  * Livin’ Magazine pages that come alive. Each `image` is the page as exported by
@@ -358,7 +358,59 @@ const page16: TargetConfig = {
   ],
 }
 
+/**
+ * The covers: the wraparound art comes alive (scripts/cover-video.py; this clip has the cover's bees painted
+ * out), each cover playing its own half, lined up with the print, whose text and QR code stay on top. The
+ * bees are cut-outs of the printed ones, and fly off the cover.
+ */
+const coverClip = '/ar/cover/cover-ar.mp4'
+const coverBee = (name: string, at: Px, width: number, hinge: [number, number], orbit: Px, radius: [number, number], extra: Partial<FlyingBee> = {}): FlyingBee => ({
+  body: `/ar/cover/bee-${name}.webp`,
+  wings: `/ar/cover/bee-${name}-wings.webp`,
+  at,
+  width,
+  hinge,
+  orbit,
+  radius,
+  ...extra,
+})
+
+const frontCover: TargetConfig = {
+  id: 'front-cover',
+  targetIndex: 16,
+  title: 'Living Magazine',
+  image: '/magazine/p01.webp',
+  size: [1080, 1485],
+  content: [
+    { type: 'video', id: 'cover-front', src: coverClip, cover: true, crop: [0.5, 0, 0.5, 1], at: [540, 742], width: 1080, loop: true },
+    {
+      type: 'bees',
+      id: 'cover-front-bees',
+      bees: [coverBee('front-flower', [533.5, 519.5], 119, [0.336, 0.341], [560, 640], [330, 230], { delay: 0.8 })],
+    },
+  ],
+}
+
+const backCover: TargetConfig = {
+  id: 'back-cover',
+  targetIndex: 17,
+  title: 'Living Magazine (back)',
+  image: '/magazine/p74.webp',
+  size: [1080, 1485],
+  content: [
+    { type: 'video', id: 'cover-back', src: coverClip, cover: true, crop: [0, 0, 0.5, 1], at: [540, 742], width: 1080, loop: true },
+    {
+      type: 'bees',
+      id: 'cover-back-bees',
+      bees: [
+        coverBee('back-sky', [705, 287], 64, [0.656, 0.432], [620, 380], [300, 200], { facesRight: true, delay: 0.8, pitch: 1.2 }),
+        coverBee('back-volcano', [1009, 586.5], 106, [0.642, 0.195], [780, 560], [300, 200], { facesRight: true, delay: 1.9, pitch: 0.9 }),
+      ],
+    },
+  ],
+}
+
 export const experience: ExperienceConfig = {
   mindFile: '/targets/targets.mind',
-  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41, page52, page58, page61, page68, page56, page16],
+  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41, page52, page58, page61, page68, page56, page16, frontCover, backCover],
 }

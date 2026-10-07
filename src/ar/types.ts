@@ -86,6 +86,8 @@ export interface VideoContent extends Placed {
    * animated version of the page itself, e.g. made by scripts/page-video.py.
    */
   cover?: boolean
+  /** Show only part of the clip: [x, y, w, h] as fractions of the frame (e.g. one half of the wraparound cover). */
+  crop?: [x: number, y: number, w: number, h: number]
 }
 
 /** A page's documentary in a frame matching that page; plays with sound and can go full screen. */
@@ -182,8 +184,9 @@ export interface PaperDollContent {
 export interface FlyingBee {
   body: string
   wings: string
-  /** The clean page under it, shown once it takes off. */
-  spot: string
+  /** The clean page under it, shown once it takes off (omit when something else already shows the page
+   *  without it, e.g. the covers' clip). */
+  spot?: string
   /** Centre and width of the cut-out on the page (target-image pixels). */
   at: Px
   width: number
