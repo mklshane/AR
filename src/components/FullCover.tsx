@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 
-/** The animated wraparound cover (back | front, continuous), made by scripts/cover-video.py --spread. */
-const SRC = '/ar/cover/cover.mp4'
-const POSTER = '/ar/cover/cover-poster.webp'
-const ASPECT = 2022 / 1378
-/** Where the spine falls across the picture (the back cover's share of the width). */
-const SPINE = 0.4955
+/** The wraparound cover art (back | front), still: it only comes alive in AR. */
+const SRC = '/ar/cover/cover-full.webp'
+const ASPECT = 4753 / 3241
+/** Where the spine falls across the picture (the back cover's share of the width, measured on the art). */
+const SPINE = 0.4975
 const FOLD_MS = 650
 /** The book's page aspect and the narrowest page it shows two-up (as in Magazine.tsx), to land the fold on it. */
 const PAGE_ASPECT = 720 / 990
@@ -19,13 +18,11 @@ interface Props {
 }
 
 /**
- * The whole cover at once, front and back side by side as the printed magazine looks laid open face-down,
- * playing the animated cover. Opening folds the back half over the spine onto the front, which ends centred
+ * The whole cover at once, front and back side by side as the printed magazine looks laid open face-down. Opening folds the back half over the spine onto the front, which ends centred
  * where the book's closed front cover sits, and the book takes over.
  */
 export function FullCover({ onOpen }: Props) {
   const boxRef = useRef<HTMLDivElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
   const [size, setSize] = useState({ w: 0, h: 0, cover: 0 })
   const [folding, setFolding] = useState<string | null>(null)
   const reduceMotion = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -51,21 +48,7 @@ export function FullCover({ onOpen }: Props) {
   const open = () => {
     if (folding) return
     if (reduceMotion) return onOpen()
-    // Fold a still of the current frame (two halves of one picture), not the live video.
-    const v = videoRef.current
-    let still = POSTER
-    if (v && v.readyState >= 2 && v.videoWidth) {
-      const c = document.createElement('canvas')
-      c.width = v.videoWidth
-      c.height = v.videoHeight
-      c.getContext('2d')!.drawImage(v, 0, 0)
-      try {
-        still = c.toDataURL('image/jpeg', 0.85)
-      } catch {
-        // A tainted canvas (shouldn't happen, same origin): fold the poster instead.
-      }
-    }
-    setFolding(still)
+    setFolding(SRC)
     setTimeout(onOpen, FOLD_MS)
   }
 
@@ -129,15 +112,10 @@ export function FullCover({ onOpen }: Props) {
           </div>
         ) : (
           <button onClick={open} aria-label="Open the magazine" className="absolute inset-0 block cursor-pointer">
-            <video
-              ref={videoRef}
+            <img
               src={SRC}
-              poster={POSTER}
-              muted
-              loop
-              playsInline
-              autoPlay={!reduceMotion}
-              preload="auto"
+              alt="Livin’ Magazine, Volume 1: the full wraparound cover"
+              draggable={false}
               className="h-full w-full rounded-[3px] object-cover shadow-[0_24px_48px_-16px_rgb(0_0_0/0.6)]"
             />
             {/* The spine: a soft fold shadow down the middle. */}
