@@ -1,4 +1,4 @@
-# Living Magazine (AR)
+# Livin’ Magazine (AR)
 
 Mobile WebAR for printed pages. Open the site on a phone, tap **START AR** and point the camera at the poster. The lyric words peel off the page, the stars and heart pop out in 3D, and everything stays locked to the poster as it or the phone moves. No app install.
 

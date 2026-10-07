@@ -130,7 +130,7 @@ export function Magazine({ onExit }: Props) {
           ← Back
         </button>
         <h1 className="text-center leading-none">
-          <span className="block font-display text-[1.6rem] font-medium">Living</span>
+          <span className="block font-display text-[1.6rem] font-medium">Livin’</span>
           <span className="mt-0.5 block text-[8px] font-semibold pl-[0.5em] tracking-[0.5em] text-paper/70 uppercase">Magazine</span>
         </h1>
         <p

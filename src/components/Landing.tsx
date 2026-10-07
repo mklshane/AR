@@ -20,7 +20,7 @@ export function Landing(props: Props) {
 function Phone({ onStart, onRead }: Props) {
   return (
     <main className="cover-sea relative flex min-h-full flex-col overflow-hidden text-white md:hidden">
-      <h1 className="sr-only">Living Magazine</h1>
+      <h1 className="sr-only">Livin’ Magazine</h1>
       <img
         src="/cover-art-760.webp"
         srcSet="/cover-art-760.webp 760w, /cover-art-1200.webp 1200w"
@@ -35,7 +35,7 @@ function Phone({ onStart, onRead }: Props) {
         <div className="relative w-full max-w-sm">
           <Kicker className="text-white/85" dot="text-path" />
           <p className="mt-2 font-masthead text-[clamp(3.2rem,15vw,4.5rem)] leading-[0.92] uppercase [text-shadow:0_1px_14px_rgb(29_63_80/0.35)]">
-            Living Magazine
+            Livin’ Magazine
           </p>
           <p className="mt-3 text-[14px] leading-relaxed text-white/85">Have the printed magazine ready, then point your camera at the page.</p>
           <Actions onStart={onStart} onRead={onRead} className="mt-5" iconClass="text-white/65 hover:text-white" />
@@ -56,7 +56,7 @@ function Wide({ onStart, onRead }: Props) {
         <section className="max-w-xl">
           <Kicker className="text-forest/80" dot="text-white" />
           <h1 className="mt-4 font-masthead text-[clamp(5rem,9vw,8.5rem)] leading-[0.88] tracking-[0.01em] text-white uppercase [text-shadow:0_2px_24px_rgb(150_60_40/0.25)]">
-            Living
+            Livin’
             <br />
             Magazine
           </h1>
@@ -75,7 +75,7 @@ function Wide({ onStart, onRead }: Props) {
           />
           <img
             src="/cover-art-1200.webp"
-            alt="The Volume I cover of Living Magazine"
+            alt="The Volume I cover of Livin’ Magazine"
             width={1200}
             height={1631}
             loading="lazy"

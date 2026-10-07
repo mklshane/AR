@@ -18,7 +18,7 @@ export function PhotoSheet({ blob, url, onClose }: Props) {
     <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-7 bg-forest/95 p-4 backdrop-blur">
       <figure className="pop-in relative -rotate-2 bg-paper p-2.5 pb-9 shadow-[0_10px_30px_rgb(0_0_0/0.4)]">
         <img src={url} alt="Your photo" className="max-h-[62vh] max-w-[80vw]" />
-        <figcaption className="absolute right-0 bottom-2 left-0 text-center font-script text-3xl leading-none text-forest">Living</figcaption>
+        <figcaption className="absolute right-0 bottom-2 left-0 text-center font-script text-3xl leading-none text-forest">Livin’</figcaption>
       </figure>
       <div className="flex w-full max-w-xs gap-3">
         {canShare ? (

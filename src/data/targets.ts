@@ -1,7 +1,7 @@
 import type { ExperienceConfig, TargetConfig, TimelineContent } from '../ar/types'
 
 /**
- * Living Magazine pages that come alive. Each `image` is the page as exported by
+ * Livin’ Magazine pages that come alive. Each `image` is the page as exported by
  * scripts/export-magazine.sh; recompile public/targets/targets.mind (/compile.html) after adding one.
  */
 
