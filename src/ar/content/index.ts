@@ -10,6 +10,7 @@ import { buildTub } from './tub'
 import { buildPaperDoll } from './paperDoll'
 import { buildPangat } from './pangat'
 import { buildBees } from './bees'
+import { buildBeside } from './beside'
 
 /** Content type → builder. Add a new content type by adding a builder here and a type in types.ts. */
 export function buildContent(item: ContentItem, ctx: BuildContext): Promise<ContentNode> {
@@ -40,6 +41,8 @@ export function buildContent(item: ContentItem, ctx: BuildContext): Promise<Cont
       return buildPangat(item, ctx)
     case 'bees':
       return buildBees(item, ctx)
+    case 'beside':
+      return buildBeside(item, ctx)
     case 'timeline':
       return buildTimeline(item, ctx)
     case 'alpha-video':

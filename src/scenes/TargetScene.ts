@@ -22,7 +22,7 @@ export class TargetScene {
 
   /** Builds all content. Items that fail (e.g. a missing GLB) are skipped and reported, not fatal. */
   async build(assets: AssetManager, view: ViewServices): Promise<string[]> {
-    const ctx = { assets, view, page: new PageSpace(this.config.size), targetImage: this.config.image }
+    const ctx = { assets, view, page: new PageSpace(this.config.size), targetImage: this.config.image, videos: new Map() }
     const results = await Promise.allSettled(this.config.content.map((item) => buildContent(item, ctx)))
     const failures: string[] = []
     results.forEach((r, i) => {

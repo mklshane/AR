@@ -8,9 +8,9 @@ const params = new URLSearchParams(location.search)
 const fakecam = params.get('fakecam')
 if (import.meta.env.DEV && fakecam !== null) {
   const { installFakeCamera } = await import('./dev/fakeCamera')
-  // ?target=<id> picks which page the fake camera films (default: the first).
+  // ?target=<id> picks which page the fake camera films (default: the first); ?fakeimg=<url> films any picture.
   const target = experience.targets.find((t) => t.id === params.get('target')) ?? experience.targets[0]
-  installFakeCamera(fakecam, target.image)
+  installFakeCamera(fakecam, params.get('fakeimg') ?? target.image)
 }
 
 createRoot(document.getElementById('root')!).render(

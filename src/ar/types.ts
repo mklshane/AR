@@ -202,6 +202,22 @@ export interface FlyingBee {
   pitch?: number
 }
 
+/**
+ * Content for the page that sits beside this one when both are in view, e.g. the back cover next to the
+ * front when the whole wraparound cover is shown (the tracker only ever follows one page). It appears once
+ * the camera actually sees that page there: its `probe` colours match what's on screen.
+ */
+export interface BesideContent {
+  type: 'beside'
+  id: string
+  /** Where the other page's top-left falls, in this page's pixels (same scale, upright). */
+  offset: Px
+  /** Flat spots on the other page (its pixels) and their printed colour (sRGB 0–255). */
+  probe: [x: number, y: number, r: number, g: number, b: number][]
+  /** The other page's content, positioned in its own pixels. */
+  content: ContentItem[]
+}
+
 /** p16's bee species: the printed bees take off and fly round the page (see content/bees.ts). */
 export interface BeesContent {
   type: 'bees'
@@ -276,6 +292,7 @@ export type ContentItem =
   | PaperDollContent
   | PangatContent
   | BeesContent
+  | BesideContent
   | TimelineContent
   | AlphaVideoContent
   | AudioContent

@@ -58,7 +58,9 @@ export function installFakeCamera(mode: string, imageSrc: string) {
       ctx.fillStyle = g
       ctx.fillRect(0, 0, canvas.width, canvas.height)
       if (!state.hidden) {
-        const h = canvas.height * (jolt ? 0.25 : noisy ? 0.3 : 0.62) * (1 + 0.12 * Math.sin(t * 0.5))
+        // Fits the frame's width too, for wide pictures (e.g. the whole wraparound cover).
+        const fill = Math.min(jolt ? 0.25 : noisy ? 0.3 : 0.62, (0.85 * canvas.width * img.height) / (img.width * canvas.height))
+        const h = canvas.height * fill * (1 + 0.12 * Math.sin(t * 0.5))
         const w = (h * img.width) / img.height
         const shake = noisy ? () => (Math.random() - 0.5) * 2 : () => 0
         // Jolt: a deterministic new pose every 2.5s (seeded by the jump index).

@@ -8,6 +8,8 @@ export interface BuildContext {
   /** Source image of the current target (for poster crops). */
   targetImage: string
   view: ViewServices
+  /** Video elements by URL, shared by the items of one target, so two crops of a clip play in step. */
+  videos: Map<string, Promise<HTMLVideoElement>>
 }
 
 /** What content may ask of the live AR view. Implemented by ARManager. */
@@ -18,6 +20,8 @@ export interface ViewServices {
   environment(): THREE.Texture
   /** Median camera-feed colour (sRGB) under these world-space points, or null if none are on screen. */
   sampleCamera(points: THREE.Vector3[]): THREE.Color | null
+  /** The camera-feed colour (sRGB 0–255) under each world-space point, null where it's off screen. */
+  sampleCameraEach(points: THREE.Vector3[]): ([r: number, g: number, b: number] | null)[] | null
   /** Show a card over the camera, e.g. a fruit with its speech bubble, large enough to read. */
   openCard(card: CardSpec): void
   /** A film came into view (or left: null), so the UI can offer sound and full-screen controls. */

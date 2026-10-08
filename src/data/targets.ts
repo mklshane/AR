@@ -1,4 +1,4 @@
-import type { ExperienceConfig, FlyingBee, Px, TargetConfig, TimelineContent } from '../ar/types'
+import type { ContentItem, ExperienceConfig, FlyingBee, Px, TargetConfig, TimelineContent } from '../ar/types'
 
 /**
  * Livin’ Magazine pages that come alive. Each `image` is the page as exported by
@@ -375,20 +375,62 @@ const coverBee = (name: string, at: Px, width: number, hinge: [number, number], 
   ...extra,
 })
 
+const frontContent: ContentItem[] = [
+  { type: 'video', id: 'cover-front', src: coverClip, cover: true, crop: [0.5, 0, 0.5, 1], at: [540, 742], width: 1080, loop: true },
+  {
+    type: 'bees',
+    id: 'cover-front-bees',
+    bees: [coverBee('front-flower', [533.5, 519.5], 119, [0.336, 0.341], [560, 640], [330, 230], { delay: 0.8 })],
+  },
+]
+const backContent: ContentItem[] = [
+  { type: 'video', id: 'cover-back', src: coverClip, cover: true, crop: [0, 0, 0.5, 1], at: [540, 742], width: 1080, loop: true },
+  {
+    type: 'bees',
+    id: 'cover-back-bees',
+    bees: [
+      coverBee('back-sky', [705, 287], 64, [0.656, 0.432], [620, 380], [300, 200], { facesRight: true, delay: 0.8, pitch: 1.2 }),
+      coverBee('back-volcano', [1009, 586.5], 106, [0.642, 0.195], [780, 560], [300, 200], { facesRight: true, delay: 1.9, pitch: 0.9 }),
+    ],
+  },
+]
+
+/**
+ * With the whole wraparound cover in view (the flipbook's full cover, or the magazine laid open), the tracker
+ * still follows just one cover, so each cover also carries the other's half, shown once the camera sees it
+ * beside it. The covers sit 1098.2 px apart (spine included), measured on the wraparound art. Probes: flat
+ * spots on the other cover and their printed colour (picked with a 4×6 grid over each cover).
+ */
+const COVER_STEP = 1098.2
+const backProbe: [number, number, number, number, number][] = [
+  [230, 220, 194, 123, 50], [270, 200, 190, 118, 46], [790, 160, 109, 134, 75], [850, 160, 122, 138, 71], [110, 480, 174, 180, 84],
+  [270, 380, 222, 172, 149], [590, 300, 222, 172, 149], [810, 300, 226, 168, 145], [250, 720, 193, 226, 231], [350, 720, 189, 224, 230],
+  [550, 660, 113, 72, 26], [810, 700, 113, 147, 93], [250, 760, 196, 228, 233], [490, 780, 189, 225, 230], [550, 820, 187, 224, 229],
+  [1010, 860, 92, 146, 70], [50, 1160, 251, 215, 122], [530, 1100, 67, 146, 172], [730, 1000, 174, 218, 226], [870, 1200, 173, 219, 227],
+  [50, 1340, 249, 207, 104], [450, 1420, 248, 202, 88], [910, 1360, 40, 125, 158],
+]
+const frontProbe: [number, number, number, number, number][] = [
+  [250, 60, 219, 174, 152], [270, 60, 219, 174, 153], [690, 140, 254, 254, 254], [810, 120, 254, 254, 254], [210, 260, 233, 161, 138],
+  [350, 260, 254, 254, 254], [610, 440, 205, 216, 133], [870, 260, 254, 254, 254], [90, 500, 158, 168, 78], [470, 640, 178, 87, 37],
+  [770, 500, 183, 206, 122], [870, 740, 98, 160, 73], [70, 940, 250, 228, 98], [490, 860, 108, 132, 65], [570, 940, 75, 127, 62],
+  [970, 960, 114, 125, 48], [230, 1100, 68, 95, 41], [450, 1200, 58, 86, 37], [550, 1180, 60, 87, 38], [910, 1160, 158, 133, 41],
+  [250, 1280, 98, 184, 202], [470, 1340, 100, 189, 202], [790, 1340, 106, 166, 188], [870, 1340, 109, 169, 190],
+]
+const beside = (id: string, offset: Px, probe: typeof backProbe, content: ContentItem[]): ContentItem => ({
+  type: 'beside',
+  id,
+  offset,
+  probe,
+  content: content.map((item) => ({ ...item, id: `${id}-${item.id}` })),
+})
+
 const frontCover: TargetConfig = {
   id: 'front-cover',
   targetIndex: 16,
   title: 'Living Magazine',
   image: '/magazine/p01.webp',
   size: [1080, 1485],
-  content: [
-    { type: 'video', id: 'cover-front', src: coverClip, cover: true, crop: [0.5, 0, 0.5, 1], at: [540, 742], width: 1080, loop: true },
-    {
-      type: 'bees',
-      id: 'cover-front-bees',
-      bees: [coverBee('front-flower', [533.5, 519.5], 119, [0.336, 0.341], [560, 640], [330, 230], { delay: 0.8 })],
-    },
-  ],
+  content: [...frontContent, beside('beside-back', [-COVER_STEP, 0], backProbe, backContent)],
 }
 
 const backCover: TargetConfig = {
@@ -397,17 +439,7 @@ const backCover: TargetConfig = {
   title: 'Living Magazine (back)',
   image: '/magazine/p74.webp',
   size: [1080, 1485],
-  content: [
-    { type: 'video', id: 'cover-back', src: coverClip, cover: true, crop: [0, 0, 0.5, 1], at: [540, 742], width: 1080, loop: true },
-    {
-      type: 'bees',
-      id: 'cover-back-bees',
-      bees: [
-        coverBee('back-sky', [705, 287], 64, [0.656, 0.432], [620, 380], [300, 200], { facesRight: true, delay: 0.8, pitch: 1.2 }),
-        coverBee('back-volcano', [1009, 586.5], 106, [0.642, 0.195], [780, 560], [300, 200], { facesRight: true, delay: 1.9, pitch: 0.9 }),
-      ],
-    },
-  ],
+  content: [...backContent, beside('beside-front', [COVER_STEP, 0], frontProbe, frontContent)],
 }
 
 export const experience: ExperienceConfig = {

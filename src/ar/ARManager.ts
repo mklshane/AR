@@ -111,6 +111,7 @@ export class ARManager extends Emitter<AREvents> {
         camera: this.camera,
         environment: () => this.environment(),
         sampleCamera: (p) => this.sampleCamera(p),
+        sampleCameraEach: (p) => this.cameraColours(p),
         openCard: (c) => this.emit('card', { ...c, from: this.lastTap }),
         setFilm: (f) => this.emit('film', f),
       },
@@ -451,6 +452,14 @@ export class ARManager extends Emitter<AREvents> {
 
   /** Median camera colour under world-space points (each projected through the current, zoomed view). */
   private sampleCamera(points: THREE.Vector3[]): THREE.Color | null {
+    const seen = this.cameraColours(points)?.filter((c) => c !== null)
+    if (!seen || seen.length < 3) return null
+    const med = (i: number) => seen.map((c) => c[i]).sort((m, n) => m - n)[seen.length >> 1] / 255
+    return new THREE.Color().setRGB(med(0), med(1), med(2), THREE.SRGBColorSpace)
+  }
+
+  /** The camera colour (sRGB 0–255) under each world-space point, or null where it's off screen. */
+  private cameraColours(points: THREE.Vector3[]): ([number, number, number] | null)[] | null {
     const video = this.video
     if (!video || video.readyState < 2 || !video.videoWidth) return null
     const W = 160
@@ -467,27 +476,19 @@ export class ARManager extends Emitter<AREvents> {
     const ch = this.container.clientHeight
     const { z, x, y } = this.zoomState
     const { left, top, width, height } = this.videoBox
-    const rs: number[] = []
-    const gs: number[] = []
-    const bs: number[] = []
     const v = new THREE.Vector3()
-    for (const p of points) {
+    return points.map((p) => {
       v.copy(p).project(this.camera)
-      if (v.z > 1) continue
+      if (v.z > 1) return null
       // zoomed NDC → unzoomed container px → video px
       const cx = x + ((v.x + 1) / 2) * (cw / z)
       const cy = y + ((1 - v.y) / 2) * (ch / z)
       const u = Math.floor(((cx - left) / width) * W)
       const w = Math.floor(((cy - top) / height) * H)
-      if (u < 0 || w < 0 || u >= W || w >= H) continue
+      if (u < 0 || w < 0 || u >= W || w >= H) return null
       const i = (w * W + u) * 4
-      rs.push(px[i])
-      gs.push(px[i + 1])
-      bs.push(px[i + 2])
-    }
-    if (rs.length < 3) return null
-    const med = (a: number[]) => a.sort((m, n) => m - n)[a.length >> 1] / 255
-    return new THREE.Color().setRGB(med(rs), med(gs), med(bs), THREE.SRGBColorSpace)
+      return [px[i], px[i + 1], px[i + 2]]
+    })
   }
 
   /** Fit video ("cover") and derive the camera frustum from MindAR's projection (ported from MindARThree). */

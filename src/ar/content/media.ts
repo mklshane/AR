@@ -86,20 +86,13 @@ function videoCover(c: VideoContent, video: HTMLVideoElement, map: THREE.VideoTe
   }
 }
 
-export async function buildVideo(c: VideoContent, { page }: BuildContext): Promise<ContentNode> {
-  const video = document.createElement('video')
-  // Muted + inline is what lets iOS Safari autoplay; the user taps the video to turn sound on.
-  Object.assign(video, { loop: c.loop ?? true, muted: true, playsInline: true, preload: 'auto', crossOrigin: 'anonymous' })
-  video.setAttribute('playsinline', '')
-  video.setAttribute('muted', '')
-  video.src = c.src
-  await new Promise<void>((resolve, reject) => {
-    if (video.readyState >= 1) return resolve()
-    video.onloadedmetadata = () => resolve()
-    video.onerror = () => reject(new Error(`Could not load video ${c.src}`))
-    // iOS may not fetch metadata until playback is requested.
-    video.play().catch(() => undefined)
-  })
+export async function buildVideo(c: VideoContent, { page, videos }: BuildContext): Promise<ContentNode> {
+  let videoP = videos.get(c.src)
+  if (!videoP) {
+    videoP = loadVideo(c)
+    videos.set(c.src, videoP)
+  }
+  const video = await videoP
   const map = new THREE.VideoTexture(video)
   map.colorSpace = THREE.SRGBColorSpace
   const w = page.len(c.width)
@@ -121,6 +114,22 @@ export async function buildVideo(c: VideoContent, { page }: BuildContext): Promi
       video.load()
     },
   }
+}
+
+function loadVideo(c: VideoContent): Promise<HTMLVideoElement> {
+  const video = document.createElement('video')
+  // Muted + inline is what lets iOS Safari autoplay; the user taps the video to turn sound on.
+  Object.assign(video, { loop: c.loop ?? true, muted: true, playsInline: true, preload: 'auto', crossOrigin: 'anonymous' })
+  video.setAttribute('playsinline', '')
+  video.setAttribute('muted', '')
+  video.src = c.src
+  return new Promise<HTMLVideoElement>((resolve, reject) => {
+    if (video.readyState >= 1) return resolve(video)
+    video.onloadedmetadata = () => resolve(video)
+    video.onerror = () => reject(new Error(`Could not load video ${c.src}`))
+    // iOS may not fetch metadata until playback is requested.
+    video.play().catch(() => undefined)
+  })
 }
 
 /**

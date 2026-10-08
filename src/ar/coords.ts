@@ -22,3 +22,19 @@ export class PageSpace {
     return [x / this.width - 0.5, (this.height / 2 - y) / this.width]
   }
 }
+
+/** Another page's pixels, laid beside this page: `offset` is where its top-left falls in this page's pixels. */
+export class BesidePageSpace extends PageSpace {
+  private readonly page: PageSpace
+  private readonly offset: Px
+
+  constructor(page: PageSpace, offset: Px) {
+    super([page.width, page.height])
+    this.page = page
+    this.offset = offset
+  }
+
+  point([x, y]: Px): [number, number] {
+    return this.page.point([x + this.offset[0], y + this.offset[1]])
+  }
+}
