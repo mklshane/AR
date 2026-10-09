@@ -44,9 +44,12 @@ def register(page: np.ndarray, frame: np.ndarray) -> np.ndarray:
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('anim')
-    ap.add_argument('back')
-    ap.add_argument('front')
+    ap.add_argument('back', nargs='?')
+    ap.add_argument('front', nargs='?')
     ap.add_argument('output')
+    ap.add_argument('--whole', metavar='IMAGE',
+                    help='instead of back/front: one clip lined up with this picture of the whole wraparound cover '
+                         '(--erase/--keep-text then name the side "whole", in its pixels)')
     ap.add_argument('--crf', type=int, default=22)
     ap.add_argument('--spread', action='store_true',
                     help='one continuous picture in the animation\'s own layout (for showing the whole cover at once), '
@@ -61,7 +64,11 @@ def main():
                     help='also keep the print\'s light text inside this box (front or back), e.g. front:30,10,160,40')
     args = ap.parse_args()
 
-    pages = [cv2.imread(args.back), cv2.imread(args.front)]
+    if args.whole:
+        pages, names = [cv2.imread(args.whole)], ['whole']
+    else:
+        pages, names = [cv2.imread(args.back), cv2.imread(args.front)], ['back', 'front']
+    pages = [p[: p.shape[0] // 2 * 2, : p.shape[1] // 2 * 2] for p in pages]
     H, W = pages[0].shape[:2]
     cap = cv2.VideoCapture(args.anim)
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -85,7 +92,7 @@ def main():
         m = ((diffs.min(axis=0) > args.diff) | ((np.percentile(diffs, 30, axis=0) > args.diff) & still)).astype(np.uint8)
         m = cv2.morphologyEx(m, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
         # Small print set over moving art (e.g. "Volume 1" over a swaying frond): keep its light letters.
-        side = 'back' if p is pages[0] else 'front'
+        side = names[len(keeps)]
         for spec in args.keep_text:
             name, box = spec.split(':')
             if name != side:
@@ -100,7 +107,7 @@ def main():
     # Erase boxes: a clean plate (the print with the bee inpainted) shown inside a feathered box.
     plates = []
     for i, p in enumerate(pages):
-        side = 'back' if i == 0 else 'front'
+        side = names[i]
         hole = np.zeros((H, W), np.uint8)
         area = np.zeros((H, W), np.float32)
         for spec in args.erase:
@@ -117,7 +124,7 @@ def main():
     fade = int(round(args.fade * fps))
     length = n - fade
     Ho = H // 2 * 2
-    out_w = W * 2
+    out_w = W * len(pages)
     if args.spread:
         # The animation's area from the back cover's left edge to the front cover's right edge.
         corners = [np.float32([[0, 0], [W, 0], [0, H], [W, H]]) @ M[:, :2].T + M[:, 2] for M in Ms]

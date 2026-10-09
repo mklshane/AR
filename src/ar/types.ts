@@ -203,9 +203,9 @@ export interface FlyingBee {
 }
 
 /**
- * Content for the page that sits beside this one when both are in view, e.g. the back cover next to the
- * front when the whole wraparound cover is shown (the tracker only ever follows one page). It appears once
- * the camera actually sees that page there: its `probe` colours match what's on screen.
+ * Content for when the page beside this one is in view too, e.g. the whole wraparound cover (the tracker only
+ * ever follows one page): shown, over this page's own content, once the camera actually sees that page there
+ * (its `probe` colours match what's on screen).
  */
 export interface BesideContent {
   type: 'beside'
@@ -214,7 +214,7 @@ export interface BesideContent {
   offset: Px
   /** Flat spots on the other page (its pixels) and their printed colour (sRGB 0–255). */
   probe: [x: number, y: number, r: number, g: number, b: number][]
-  /** The other page's content, positioned in its own pixels. */
+  /** Shown while both pages are in view; positioned in this page's pixels. */
   content: ContentItem[]
 }
 

@@ -13,19 +13,20 @@ const MATCH = 0.6
 const MIN_SEEN = 0.5
 
 /**
- * The page beside this one (see BesideContent): its content is built here, in its own pixels, and shown
- * only while the camera sees that page where it should be, e.g. the back cover left of the front when the
- * whole wraparound cover is on screen, but not the table beside a single printed cover.
+ * Content for when the page beside this one is in view too (see BesideContent), e.g. the whole cover's clip
+ * when the whole wraparound cover is on screen, but not over the table beside a single printed cover. It's
+ * drawn over this page's own content, and its media only plays while it's shown.
  */
 export async function buildBeside(c: BesideContent, ctx: BuildContext): Promise<ContentNode> {
   const page = new BesidePageSpace(ctx.page, c.offset)
   const group = new THREE.Group()
   group.visible = false
-  const nodes = await Promise.all(c.content.map((item) => buildContent(item, { ...ctx, page })))
+  const nodes = await Promise.all(c.content.map((item) => buildContent(item, ctx)))
   for (const n of nodes) {
     n.object.userData.node = n
     group.add(n.object)
   }
+  group.traverse((o) => (o.renderOrder += 0.5))
 
   const probes = c.probe.map(([x, y]) => new THREE.Vector3(...page.point([x, y]), 0))
   const world = probes.map(() => new THREE.Vector3())
@@ -54,9 +55,12 @@ export async function buildBeside(c: BesideContent, ctx: BuildContext): Promise<
   let votes = 0
   let lookedAt = -Infinity
   let shownAt = 0
+  let onPage = false
   const hide = () => {
     votes = 0
+    if (!group.visible) return
     group.visible = false
+    nodes.forEach((n) => n.onHide?.())
   }
 
   return {
@@ -74,15 +78,18 @@ export async function buildBeside(c: BesideContent, ctx: BuildContext): Promise<
           votes = 0
           group.visible = true
           shownAt = tick.t
+          if (onPage) nodes.forEach((n) => n.onShow?.())
           console.info(`[ar] ${c.id}: the page beside is in view`)
         } else if (group.visible && votes >= HIDE_AFTER) hide()
       }
       if (group.visible) for (const n of nodes) n.update({ ...tick, t: tick.t - shownAt })
     },
-    onShow: () => nodes.forEach((n) => n.onShow?.()),
+    onShow() {
+      onPage = true
+    },
     onHide() {
+      onPage = false
       hide()
-      nodes.forEach((n) => n.onHide?.())
     },
     dispose: () => nodes.forEach((n) => n.dispose()),
   }

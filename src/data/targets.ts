@@ -397,10 +397,12 @@ const backContent: ContentItem[] = [
 
 /**
  * With the whole wraparound cover in view (the flipbook's full cover, or the magazine laid open), the tracker
- * still follows just one cover, so each cover also carries the other's half, shown once the camera sees it
- * beside it. The covers sit 1098.2 px apart (spine included), measured on the wraparound art. Probes: flat
- * spots on the other cover and their printed colour (picked with a 4×6 grid over each cover).
+ * still follows just one cover, so each cover also carries the whole cover's clip (scripts/cover-video.py
+ * --whole, lined up with the flipbook's picture of it) and the other cover's bees, shown over its own half once
+ * the camera sees the other cover beside it. The covers sit 1098.2 px apart (spine included), measured on the
+ * wraparound art. Probes: flat spots on the other cover and their printed colour (a 4×6 grid over each cover).
  */
+const wholeClip = '/ar/cover/cover-whole.mp4'
 const COVER_STEP = 1098.2
 const backProbe: [number, number, number, number, number][] = [
   [230, 220, 194, 123, 50], [270, 200, 190, 118, 46], [790, 160, 109, 134, 75], [850, 160, 122, 138, 71], [110, 480, 174, 180, 84],
@@ -416,13 +418,15 @@ const frontProbe: [number, number, number, number, number][] = [
   [970, 960, 114, 125, 48], [230, 1100, 68, 95, 41], [450, 1200, 58, 86, 37], [550, 1180, 60, 87, 38], [910, 1160, 158, 133, 41],
   [250, 1280, 98, 184, 202], [470, 1340, 100, 189, 202], [790, 1340, 106, 166, 188], [870, 1340, 109, 169, 190],
 ]
-const beside = (id: string, offset: Px, probe: typeof backProbe, content: ContentItem[]): ContentItem => ({
-  type: 'beside',
-  id,
-  offset,
-  probe,
-  content: content.map((item) => ({ ...item, id: `${id}-${item.id}` })),
-})
+/** The whole cover's clip, centred and sized in one cover's pixels (each cover is 1080 px on the art's 1.078×). */
+const wholeCover = (id: string, at: Px): ContentItem => ({ type: 'video', id, src: wholeClip, cover: true, at, width: 2225.9, loop: true })
+/** The other cover's bees, moved into this cover's pixels. */
+const besideBees = (id: string, from: ContentItem, [dx, dy]: Px): ContentItem => {
+  if (from.type !== 'bees') throw new Error(`${from.id} isn't bees`)
+  const move = ([x, y]: Px): Px => [x + dx, y + dy]
+  return { ...from, id, bees: from.bees.map((b) => ({ ...b, at: move(b.at), orbit: move(b.orbit) })) }
+}
+const beside = (id: string, offset: Px, probe: typeof backProbe, content: ContentItem[]): ContentItem => ({ type: 'beside', id, offset, probe, content })
 
 const frontCover: TargetConfig = {
   id: 'front-cover',
@@ -430,7 +434,10 @@ const frontCover: TargetConfig = {
   title: 'Living Magazine',
   image: '/magazine/p01.webp',
   size: [1080, 1485],
-  content: [...frontContent, beside('beside-back', [-COVER_STEP, 0], backProbe, backContent)],
+  content: [
+    ...frontContent,
+    beside('whole-from-front', [-COVER_STEP, 0], backProbe, [wholeCover('whole-front', [-1.6, 742.8]), besideBees('whole-front-bees', backContent[1], [-COVER_STEP, 0])]),
+  ],
 }
 
 const backCover: TargetConfig = {
@@ -439,7 +446,10 @@ const backCover: TargetConfig = {
   title: 'Living Magazine (back)',
   image: '/magazine/p74.webp',
   size: [1080, 1485],
-  content: [...backContent, beside('beside-front', [COVER_STEP, 0], frontProbe, frontContent)],
+  content: [
+    ...backContent,
+    beside('whole-from-back', [COVER_STEP, 0], frontProbe, [wholeCover('whole-back', [1096.8, 742.8]), besideBees('whole-back-bees', frontContent[1], [COVER_STEP, 0])]),
+  ],
 }
 
 export const experience: ExperienceConfig = {
