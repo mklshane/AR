@@ -450,6 +450,7 @@ const frontCover: TargetConfig = {
   title: 'Living Magazine',
   image: '/magazine/p01.webp',
   size: [1080, 1485],
+  hideStale: true,
   content: [
     ...frontContent,
     beside('whole-from-front', [-COVER_STEP, 0], backProbe, [wholeCover('whole-front', [-1.6, 742.8]), besideBees('whole-front-bees', backContent[1], [-COVER_STEP, 0])]),
@@ -462,6 +463,7 @@ const backCover: TargetConfig = {
   title: 'Living Magazine (back)',
   image: '/magazine/p78.webp',
   size: [1080, 1485],
+  hideStale: true,
   content: [
     ...backContent,
     beside('whole-from-back', [COVER_STEP, 0], frontProbe, [wholeCover('whole-back', [1096.8, 742.8]), besideBees('whole-back-bees', frontContent[1], [COVER_STEP, 0])]),

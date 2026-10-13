@@ -325,6 +325,13 @@ export interface TargetConfig {
    */
   poseFilter?: { minCutoff?: number; beta?: number }
   /**
+   * Hide the content while the tracker has stopped updating the page's pose (it re-reports the last pose for
+   * a while before calling the page lost), rather than leave it pinned where the page was. For content that
+   * must sit exactly on the print, like a full-page clip, where a stale pose shows as a doubled, offset page.
+   * Off by default: it would also hide a film lifted off the page to fill the screen.
+   */
+  hideStale?: boolean
+  /**
    * Tracked only to keep other targets from matching pictures of them printed on it (e.g. the contents page's
    * thumbnails): no content, and it isn't announced as a found page.
    */

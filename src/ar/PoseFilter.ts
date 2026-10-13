@@ -18,7 +18,8 @@ import * as THREE from 'three'
  *   - Jolts: if the raw pose lands > motionSigma·σ from what's on screen for two samples in a row
  *     (one-sample tracker glitches are ignored), snap at maxCutoff until caught up. A jolt in any
  *     channel re-syncs all three, so depth/tilt never creep behind.
- * Depth is the noisiest for a single camera, which is why it has its own σ.
+ * Depth is the noisiest for a single camera, which is why it has its own σ. The three are then smoothed with
+ * the loosest of their cutoffs, so the pose stays one the page could really be in.
  *
  * Applied once per tracker sample (not interpolated): the camera image only changes per frame too,
  * and blending between samples just makes content trail it.
@@ -206,10 +207,13 @@ export class PoseFilter {
       channels.forEach((c) => c.latch())
       cLat = cDepth = cRot = o.maxCutoff
     }
-    if ((globalThis as { __pfShared?: boolean }).__pfShared) cLat = cDepth = cRot = Math.max(cLat, cDepth, cRot)
+    // One cutoff for all three, the loosest: if position follows a move but rotation lags (a tilt is small
+    // next to its noise, so it barely registers as motion), the pose isn't one the page could be in, and
+    // anything flat on the page is drawn skewed off the print.
+    const c = Math.max(cLat, cDepth, cRot)
 
-    this.pos.addScaledVector(dev.lateral, alpha(dt, cLat)).addScaledVector(view, dev.along * alpha(dt, cDepth))
-    this.quat.slerp(this.rawQuat, alpha(dt, cRot))
+    this.pos.addScaledVector(dev.lateral, alpha(dt, c)).addScaledVector(view, dev.along * alpha(dt, c))
+    this.quat.slerp(this.rawQuat, alpha(dt, c))
     this.prevRawPos.copy(this.rawPos)
     this.prevRawQuat.copy(this.rawQuat)
     this.out.compose(this.pos, this.quat, this.rawScale)

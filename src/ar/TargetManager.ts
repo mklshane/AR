@@ -8,6 +8,13 @@ import { TargetScene } from '../scenes/TargetScene'
 /** Re-detections within this many seconds don't replay the intro animation (avoids flicker restarts). */
 const REINTRO_AFTER_S = 2
 
+/**
+ * hideStale: the content hides once no new pose has come for this long, or for this many typical gaps between
+ * tracker samples, whichever is longer (so a slow tracker or a single missed frame doesn't make it blink).
+ */
+const STALE_AFTER_S = 0.12
+const STALE_AFTER_GAPS = 2.5
+
 const HIDDEN = new THREE.Matrix4().set(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1)
 
 interface Anchor {
@@ -17,6 +24,11 @@ interface Anchor {
   postMatrix: THREE.Matrix4
   /** Latest unfiltered pose from the tracker; smoothed into group.matrix on each sample. */
   rawPose: THREE.Matrix4
+  /** The tracker's last report, to tell a new pose from a re-report of the last one (hideStale). */
+  lastReport: number[]
+  /** When the pose last changed, and the typical time between changes (seconds). */
+  freshAt: number
+  sampleGap: number
   filter: PoseFilter | null
   scene?: TargetScene
   building?: Promise<void>
@@ -82,6 +94,9 @@ export class TargetManager {
         group,
         postMatrix,
         rawPose: new THREE.Matrix4(),
+        lastReport: [],
+        freshAt: 0,
+        sampleGap: 1 / 30,
         filter: this.smoothing ? new PoseFilter({ ...this.poseFilter, ...config.poseFilter }) : null,
         visible: false,
         timing: this.timingFor(config),
@@ -101,6 +116,11 @@ export class TargetManager {
     const a = this.anchors.get(targetIndex)
     if (!a || a.config.quiet) return
     if (worldMatrix) {
+      if (!a.visible || worldMatrix.some((v, i) => v !== a.lastReport[i])) {
+        if (a.visible) a.sampleGap += 0.1 * (Math.min(0.5, now - a.freshAt) - a.sampleGap)
+        a.freshAt = now
+        a.lastReport = worldMatrix.slice()
+      }
       a.rawPose.fromArray(worldMatrix).multiply(a.postMatrix)
       if (!a.visible) a.filter?.reset()
       if (a.filter) {
@@ -172,6 +192,7 @@ export class TargetManager {
   tick(now: number, dt: number) {
     for (const a of this.anchors.values()) {
       if (!a.visible) continue
+      if (a.config.hideStale) a.group.visible = now - a.freshAt <= Math.max(STALE_AFTER_S, STALE_AFTER_GAPS * a.sampleGap)
       if (a.timing.foundAt === Infinity) a.timing.foundAt = now
       a.scene?.update({ t: now - a.timing.foundAt, dt, time: now })
     }
@@ -243,7 +264,7 @@ export class TargetManager {
   debugPoses() {
     return [...this.anchors.values()]
       .filter((a) => a.visible)
-      .map((a) => ({ id: a.config.id, raw: a.rawPose.toArray(), shown: a.group.matrix.toArray(), noise: a.filter?.noise, samples: a.filter?.samples ?? 0 }))
+      .map((a) => ({ id: a.config.id, raw: a.rawPose.toArray(), shown: a.group.matrix.toArray(), drawn: a.group.visible, noise: a.filter?.noise, samples: a.filter?.samples ?? 0 }))
   }
 
   get anyVisible() {

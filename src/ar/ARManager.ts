@@ -60,7 +60,16 @@ export interface AROptions {
   poseFilter?: Partial<PoseFilterOptions>
   /** Requested camera height in pixels (720 default; 1080 gives the tracker more detail). */
   cameraHeight?: number
+  /** Tracker frames a lost page keeps its last pose before it's hidden (see MISS_TOLERANCE). */
+  missTolerance?: number
 }
+
+/**
+ * Tracker frames a lost page keeps its last pose before MindAR calls it lost. Each of those frames runs a full
+ * detection, so on a phone this can be most of a second (see TargetConfig.hideStale for content that mustn't
+ * sit at a stale pose that long).
+ */
+const MISS_TOLERANCE = 5
 
 /**
  * Owns the camera, the MindAR controller and the Three.js renderer. React only listens to events.
@@ -82,6 +91,7 @@ export class ARManager extends Emitter<AREvents> {
   private pendingCapture?: (blob: Blob | null) => void
   private smoothing: boolean
   private cameraHeight: number
+  private missTolerance: number
   /** Pinch zoom: factor and the top-left of the visible window, in unzoomed container px. */
   private zoomState = { z: 1, x: 0, y: 0 }
   private pointers = new Map<number, { x: number; y: number }>()
@@ -119,6 +129,7 @@ export class ARManager extends Emitter<AREvents> {
     )
     this.smoothing = opts.smoothing ?? true
     this.cameraHeight = opts.cameraHeight ?? 720
+    this.missTolerance = opts.missTolerance ?? MISS_TOLERANCE
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x8fb3d9, 2.4))
     const sun = new THREE.DirectionalLight(0xffffff, 1.6)
     sun.position.set(-0.5, 1, 1.5)
@@ -156,7 +167,7 @@ export class ARManager extends Emitter<AREvents> {
         filterMinCF: this.smoothing ? 1e9 : 0.0005,
         filterBeta: this.smoothing ? 0 : 0.001,
         warmupTolerance: 3,
-        missTolerance: 5,
+        missTolerance: this.missTolerance,
         onUpdate: (data) => {
           if (data.type === 'updateMatrix' && data.targetIndex !== undefined) {
             this.targets.update(data.targetIndex, data.worldMatrix ?? null, this.clock.elapsedTime)

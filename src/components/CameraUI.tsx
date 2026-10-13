@@ -13,10 +13,11 @@ import { ScanOverlay } from './ScanOverlay'
 import { Leaf } from './Leaf'
 import { TrackingHud } from './TrackingHud'
 
-// Field-testing switches (work on deployed builds): ?hud, ?res=1080, ?pf=…
+// Field-testing switches (work on deployed builds): ?hud, ?res=1080, ?pf=…, ?miss=…
 const search = new URLSearchParams(location.search)
 const showHud = search.has('hud')
 const cameraHeight = Number(search.get('res')) || undefined
+const missTolerance = search.has('miss') ? Number(search.get('miss')) : undefined
 
 interface Props {
   config: ExperienceConfig
@@ -46,7 +47,7 @@ export function CameraUI({ config, debug, smoothing, onExit }: Props) {
     const pf = search.get('pf')?.split(',').map(Number)
     const poseFilter =
       pf?.length === 5 ? { minCutoff: pf[0], maxCutoff: pf[1], beta: pf[2], noiseSigma: pf[3], motionSigma: pf[4] } : undefined
-    const ar = new ARManager(containerRef.current!, config, { debug, smoothing, poseFilter, cameraHeight })
+    const ar = new ARManager(containerRef.current!, config, { debug, smoothing, poseFilter, cameraHeight, missTolerance })
     managerRef.current = ar
     if (import.meta.env.DEV) (window as unknown as { __ar?: ARManager }).__ar = ar
     const offs = [

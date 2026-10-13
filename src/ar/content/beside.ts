@@ -4,10 +4,13 @@ import type { BesideContent } from '../types'
 import { type BuildContext, type ContentNode } from './ContentNode'
 import { buildContent } from './index'
 
-/** Seconds between looks at the camera, and how many agreeing looks it takes to show or hide. */
-const EVERY = 0.2
+/**
+ * Seconds between looks at the camera, and how many agreeing looks it takes to show or hide. Hiding is quick
+ * too: once the other page is gone, the whole cover's clip is drawn over whatever is there instead.
+ */
+const EVERY = 0.1
 const SHOW_AFTER = 2
-const HIDE_AFTER = 4
+const HIDE_AFTER = 3
 /** How closely the camera's colours must follow the print's (correlation), from how many probes. */
 const MATCH = 0.6
 const MIN_SEEN = 0.5
