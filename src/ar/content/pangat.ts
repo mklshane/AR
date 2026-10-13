@@ -5,7 +5,7 @@ import { type BuildContext, type ContentNode, clamp01, disposeObject, easeOutBac
 import { type NoteColors, noteTexture } from './note'
 
 /**
- * p58 "Pangat: Ang Pagbabalik ng Leftovers". A pan of leftover lechon sits on the printed flame, and the
+ * p20 "Pangat: Ang Pagbabalik ng Leftovers". A pan of leftover lechon sits on the printed flame, and the
  * printed stove knob at the bottom of the page really turns: twist it (or tap it, a notch at a time) and the
  * flame climbs, the pan sizzles, steams and rattles, and at full heat the lechon jumps out, flips and lands
  * back as lechon paksiw. Turn the knob back down and it's leftovers again, ready for another go.

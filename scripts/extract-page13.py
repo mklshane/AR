@@ -384,8 +384,13 @@ def main():
         with tempfile.TemporaryDirectory() as tmp:
             dpi = 270
             # (own names: w/h above are the clip's size, written to the timeline below)
-            inset, trim_w, trim_h = round(29.5 * dpi / 72), round(576 * dpi / 72), round(792 * dpi / 72)
-            subprocess.run(['pdftoppm', '-r', str(dpi), '-f', '13', '-l', '13', '-singlefile', '-x', str(inset), '-y', str(inset),
+            boxes = {l.split()[2]: [float(v) for v in l.split()[3:7]]
+                     for l in subprocess.run(['pdfinfo', '-box', '-f', '13', '-l', '13', pdf], capture_output=True, text=True).stdout.splitlines()
+                     if l.split()[2:3] in (['MediaBox:'], ['TrimBox:'])}
+            (mx0, _, _, my1), (tx0, ty0, tx1, ty1) = boxes['MediaBox:'], boxes['TrimBox:']
+            ix, iy = round((tx0 - mx0) * dpi / 72), round((my1 - ty1) * dpi / 72)
+            trim_w, trim_h = round((tx1 - tx0) * dpi / 72), round((ty1 - ty0) * dpi / 72)
+            subprocess.run(['pdftoppm', '-r', str(dpi), '-f', '13', '-l', '13', '-singlefile', '-x', str(ix), '-y', str(iy),
                             '-W', str(trim_w), '-H', str(trim_h), '-png', pdf, f'{tmp}/p'], check=True)
             hi = cv2.imread(f'{tmp}/p.png')
         k2 = hi.shape[1] / page.shape[1]

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Export the print PDF to web pages for the flip book. Needs poppler (pdftoppm) and webp (cwebp).
-# Crops to the TrimBox (29.5pt inset, 576x792pt) so bleed and printer marks are dropped.
+# Crops to page 1's TrimBox (read with pdfinfo) so any bleed and printer marks are dropped.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PDF=${1:-design/living-magazine.pdf}
@@ -8,12 +8,16 @@ OUT=public/magazine
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
-render() { # dpi width prefix
-  local dpi=$1 inset w h
-  inset=$(python3 -c "print(round(29.5*$dpi/72))")
-  w=$(python3 -c "print(round(576*$dpi/72))")
-  h=$(python3 -c "print(round(792*$dpi/72))")
-  pdftoppm -r "$dpi" -x "$inset" -y "$inset" -W "$w" -H "$h" -png "$PDF" "$TMP/$2"
+# TrimBox x0 y0 x1 y1 in pt, relative to the MediaBox.
+read -r TX0 TY0 TX1 TY1 < <(pdfinfo -box -f 1 -l 1 "$PDF" | awk '/MediaBox/{mx=$4;my=$5;mh=$7} /TrimBox/{print $4-mx, mh-$7, $6-mx, mh-$5}')
+
+render() { # dpi prefix
+  local dpi=$1 x y w h
+  x=$(python3 -c "print(round($TX0*$dpi/72))")
+  y=$(python3 -c "print(round($TY0*$dpi/72))")
+  w=$(python3 -c "print(round(($TX1-$TX0)*$dpi/72))")
+  h=$(python3 -c "print(round(($TY1-$TY0)*$dpi/72))")
+  pdftoppm -r "$dpi" -x "$x" -y "$y" -W "$w" -H "$h" -png "$PDF" "$TMP/$2"
 }
 
 mkdir -p "$OUT/thumbs"

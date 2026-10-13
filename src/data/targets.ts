@@ -88,24 +88,24 @@ const page15: TargetConfig = {
 }
 
 /**
- * p22, the eco-printed leaf cloth beside "4 Elements, 1 Process": the cut-out leaves fly back into the
+ * p62, the eco-printed leaf cloth beside "4 Elements, 1 Process": the cut-out leaves fly back into the
  * holes they were cut from (the design team's ILI LEAVES render, keyed by scripts/alpha-clip.py).
  */
-const page22: TargetConfig = {
-  id: 'page22',
+const page62: TargetConfig = {
+  id: 'page62',
   targetIndex: 3,
   title: 'Ili leaves',
-  image: '/magazine/p22.webp',
+  image: '/magazine/p62.webp',
   size: [1080, 1485],
-  content: [{ type: 'alpha-video', id: 'leaves', src: '/ar/p22/leaves.mp4', at: [540, 742.5], width: 1080 }],
+  content: [{ type: 'alpha-video', id: 'leaves', src: '/ar/p62/leaves.mp4', at: [540, 742.5], width: 1080 }],
 }
 
-/** p24 "Teacher Maui": the Ili Likhaan docufilm over the portrait, framed with the page's own flourishes. */
-const page24: TargetConfig = {
-  id: 'page24',
+/** p64 "Teacher Maui": the Ili Likhaan docufilm over the portrait, framed with the page's own flourishes. */
+const page64: TargetConfig = {
+  id: 'page64',
   targetIndex: 4,
   title: 'Teacher Maui',
-  image: '/magazine/p24.webp',
+  image: '/magazine/p64.webp',
   size: [1080, 1485],
   // Prebuilt in the background: a film only fetches its poster and the video's header up front (the
   // video itself streams on play), so the framed poster is ready the moment the page is found.
@@ -114,7 +114,7 @@ const page24: TargetConfig = {
       type: 'film',
       id: 'ili-likhaan',
       src: '/videos/ili-likhaan.mp4',
-      poster: '/ar/p24/poster.webp',
+      poster: '/ar/p64/poster.webp',
       title: 'Ili Likhaan',
       subtitle: 'Teacher Maui',
       frame: 'flourish',
@@ -127,12 +127,12 @@ const page24: TargetConfig = {
   ],
 }
 
-/** p30 "Yano": his docufilm pops up over the portrait, captioned in the page's white script. */
-const page30: TargetConfig = {
-  id: 'page30',
+/** p70 "Yano": his docufilm pops up over the portrait, captioned in the page's white script. */
+const page70: TargetConfig = {
+  id: 'page70',
   targetIndex: 5,
   title: 'Yano',
-  image: '/magazine/p30.webp',
+  image: '/magazine/p70.webp',
   size: [1080, 1485],
   // Prebuilt in the background: a film only fetches its poster and the video's header up front (the
   // video itself streams on play), so the framed poster is ready the moment the page is found.
@@ -141,7 +141,7 @@ const page30: TargetConfig = {
       type: 'film',
       id: 'yano',
       src: '/videos/yano.mp4',
-      poster: '/ar/p30/poster.webp',
+      poster: '/ar/p70/poster.webp',
       title: 'Yano',
       subtitle: 'Community Development Worker',
       frame: 'script',
@@ -154,52 +154,52 @@ const page30: TargetConfig = {
   ],
 }
 
-/** p34 "The Ice Cream is Gone": the Selecta tub on the printed tray; tap it to find the fish. */
-const page34: TargetConfig = {
-  id: 'page34',
+/** p42 "The Ice Cream is Gone": the Selecta tub on the printed tray; tap it to find the fish. */
+const page42: TargetConfig = {
+  id: 'page42',
   targetIndex: 6,
   title: 'The Ice Cream is Gone',
-  image: '/magazine/p34.webp',
+  image: '/magazine/p42.webp',
   size: [1080, 1485],
   prefetch: false,
   // Centred on the printed tray (495 × 745 px), long enough to cover it.
   content: [{ type: 'tub', id: 'ice-cream-tub', asset: '/models/ice-cream-tub.glb', at: [518, 802], length: 680 }],
 }
 
-/** p39 "The Thrift-Up Doll": drag the printed clothes onto the paper doll. */
-const page39: TargetConfig = {
-  id: 'page39',
+/** p25 "The Thrift-Up Doll": drag the printed clothes onto the paper doll. */
+const page25: TargetConfig = {
+  id: 'page25',
   targetIndex: 7,
   title: 'The Thrift-Up Doll',
-  image: '/magazine/p39.webp',
+  image: '/magazine/p25.webp',
   size: [1080, 1485],
   content: [
     {
       type: 'paper-doll',
       id: 'thrift-up-doll',
-      cover: '/ar/p39/page.webp',
+      cover: '/ar/p25/page.webp',
       note: { title: 'Dress me up!', hint: 'Drag clothes onto me · tap to take off' },
       // The doll's cut-out, generously: dropping anywhere on her counts.
       body: [60, 260, 310, 1200],
       // Worn positions and scales were fitted by overlaying each piece on the doll.
       pieces: [
         // Tops cover her shoulders up to the neck; the jeans reach the shoes, which sit over her feet.
-        { id: 'vest', src: '/ar/p39/vest.webp', home: [540, 530], width: 227, worn: [219, 686], wornScale: 1.0, slot: 'outfit' },
-        { id: 'leopard', src: '/ar/p39/halfbody.webp', home: [541, 917], width: 285, worn: [219, 716], wornScale: 0.97, slot: 'outfit' },
-        { id: 'pink', src: '/ar/p39/pink.webp', home: [872, 654], width: 289, worn: [219, 881], wornScale: 1.24, slot: 'outfit' },
-        { id: 'denim', src: '/ar/p39/denim.webp', home: [870, 1199], width: 353, worn: [221, 673], wornScale: 1.03, slot: 'outfit' },
-        { id: 'shoes', src: '/ar/p39/shoes.webp', home: [520, 1281], width: 223, worn: [203, 1339], wornScale: 0.86, slot: 'shoes' },
+        { id: 'vest', src: '/ar/p25/vest.webp', home: [540, 530], width: 227, worn: [219, 686], wornScale: 1.0, slot: 'outfit' },
+        { id: 'leopard', src: '/ar/p25/halfbody.webp', home: [541, 917], width: 285, worn: [219, 716], wornScale: 0.97, slot: 'outfit' },
+        { id: 'pink', src: '/ar/p25/pink.webp', home: [872, 654], width: 289, worn: [219, 881], wornScale: 1.24, slot: 'outfit' },
+        { id: 'denim', src: '/ar/p25/denim.webp', home: [870, 1199], width: 353, worn: [221, 673], wornScale: 1.03, slot: 'outfit' },
+        { id: 'shoes', src: '/ar/p25/shoes.webp', home: [520, 1281], width: 223, worn: [203, 1339], wornScale: 0.86, slot: 'shoes' },
       ],
     },
   ],
 }
 
-/** p40 "MAGWAI wants your beach bag…": the reef-safe sunscreen rising out of a watercolour reef, mid-page. */
-const page40: TargetConfig = {
-  id: 'page40',
+/** p26 "MAGWAI wants your beach bag…": the reef-safe sunscreen rising out of a watercolour reef, mid-page. */
+const page26: TargetConfig = {
+  id: 'page26',
   targetIndex: 8,
   title: 'MAGWAI Sunscreen',
-  image: '/magazine/p40.webp',
+  image: '/magazine/p26.webp',
   size: [1080, 1485],
   prefetch: false,
   // Tall layered scene: hold it steadier than the default (see TargetConfig.poseFilter).
@@ -221,12 +221,12 @@ const page40: TargetConfig = {
   ],
 }
 
-/** p41 "Then MAGWAI looked at the bathroom": the shampoo bar rising out of the same reef, mid-page. */
-const page41: TargetConfig = {
-  id: 'page41',
+/** p27 "Then MAGWAI looked at the bathroom": the shampoo bar rising out of the same reef, mid-page. */
+const page27: TargetConfig = {
+  id: 'page27',
   targetIndex: 9,
   title: 'MAGWAI Shampoo Bar',
-  image: '/magazine/p41.webp',
+  image: '/magazine/p27.webp',
   size: [1080, 1485],
   prefetch: false,
   // Tall layered scene: hold it steadier than the default (see TargetConfig.poseFilter).
@@ -236,7 +236,7 @@ const page41: TargetConfig = {
       type: 'model',
       id: 'magwai-shampoo',
       asset: '/models/magwai-shampoo.glb',
-      hide: ['cap.001'], // the sunscreen tube belongs to p40
+      hide: ['cap.001'], // the sunscreen tube belongs to p26
       at: [540, 1430],
       width: 760,
       depth: 1.5,
@@ -246,22 +246,22 @@ const page41: TargetConfig = {
   ],
 }
 
-/** p52 "It's Four O'Clock!": the clock's people and things come alive over the print (scripts/page-video.py --alpha). */
-const page52: TargetConfig = {
-  id: 'page52',
+/** p54 "It's Four O'Clock!": the clock's people and things come alive over the print (scripts/page-video.py --alpha). */
+const page54: TargetConfig = {
+  id: 'page54',
   targetIndex: 10,
   title: "It's Four O'Clock!",
-  image: '/magazine/p52.webp',
+  image: '/magazine/p54.webp',
   size: [1080, 1485],
-  content: [{ type: 'alpha-video', id: 'four-oclock', src: '/ar/p52/four-oclock-alpha.mp4', at: [540, 742], width: 1080, loop: true }],
+  content: [{ type: 'alpha-video', id: 'four-oclock', src: '/ar/p54/four-oclock-alpha.mp4', at: [540, 742], width: 1080, loop: true }],
 }
 
-/** p58 "Pangat: Ang Pagbabalik ng Leftovers": turn the printed knob to heat the pan until the leftover lechon comes back as paksiw. */
-const page58: TargetConfig = {
-  id: 'page58',
+/** p20 "Pangat: Ang Pagbabalik ng Leftovers": turn the printed knob to heat the pan until the leftover lechon comes back as paksiw. */
+const page20: TargetConfig = {
+  id: 'page20',
   targetIndex: 11,
   title: 'Pangat',
-  image: '/magazine/p58.webp',
+  image: '/magazine/p20.webp',
   size: [1080, 1485],
   prefetch: false,
   content: [
@@ -271,20 +271,20 @@ const page58: TargetConfig = {
       asset: '/models/pangat.glb',
       // Seen a little from above like the stove photo; the pot centred on the printed flame (x 291–836),
       // sitting in its lower half so the painted tongues rise around it.
-      at: [563, 600],
+      at: [561, 574],
       width: 500,
       stand: 15,
-      knob: { at: [493, 1256], radius: 236 },
+      knob: { at: [493, 1211], radius: 236 },
     },
   ],
 }
 
-/** p61 "Kapusod": Howie Severino's docufilm pops up over his printed portrait, captioned on the page's leaf green. */
-const page61: TargetConfig = {
-  id: 'page61',
+/** p29 "Kapusod": Howie Severino's docufilm pops up over his printed portrait, captioned on the page's leaf green. */
+const page29: TargetConfig = {
+  id: 'page29',
   targetIndex: 12,
   title: 'Kapusod',
-  image: '/magazine/p61.webp',
+  image: '/magazine/p29.webp',
   size: [1080, 1485],
   // Prebuilt in the background: a film only fetches its poster and the video's header up front (the
   // video itself streams on play), so the framed poster is ready the moment the page is found.
@@ -293,32 +293,32 @@ const page61: TargetConfig = {
       type: 'film',
       id: 'kapusod',
       src: '/videos/kapusod.mp4',
-      poster: '/ar/p61/poster.webp',
+      poster: '/ar/p29/poster.webp',
       title: 'Kapusod',
       subtitle: 'Howie Severino',
       frame: 'script',
       accent: '#5d784f', // the page's green "Kapusod" script
       decor: 'leaves',
-      // The film window over the printed portrait (x 329–993, y 257–626): frame = 664 × 1200/1060.
-      at: [661, 480],
+      // The film window over the printed portrait (x 329–993, y 297–666): frame = 664 × 1200/1060.
+      at: [661, 520],
       width: 752,
       lift: 0.02,
     },
   ],
 }
 
-/** p68 "Deep Ecology": the painting grows over the print, black background keyed out (scripts/alpha-clip.py --key black --soft 180, so its glow fades out without a dark halo). */
-const page68: TargetConfig = {
-  id: 'page68',
+/** p72 "Deep Ecology": the painting grows over the print, black background keyed out (scripts/alpha-clip.py --key black --soft 180, so its glow fades out without a dark halo). */
+const page72: TargetConfig = {
+  id: 'page72',
   targetIndex: 13,
   title: 'Deep Ecology',
-  image: '/magazine/p68.webp',
+  image: '/magazine/p72.webp',
   size: [1080, 1485],
   content: [
     {
       type: 'alpha-video',
       id: 'deep-ecology',
-      src: '/ar/p68/deep-ecology.mp4',
+      src: '/ar/p72/deep-ecology.mp4',
       // The clip draws the painting 1/1.207 of its printed size; registered (SIFT) so it lands on the print.
       at: [559, 663],
       width: 1304,
@@ -327,14 +327,14 @@ const page68: TargetConfig = {
   ],
 }
 
-/** p56 "Sharon, Save Me a Plate!": the fiesta table comes alive inside the page's own border (scripts/page-video.py --under-frame). */
-const page56: TargetConfig = {
-  id: 'page56',
+/** p18 "Sharon, Save Me a Plate!": the fiesta table comes alive inside the page's own border (scripts/page-video.py --under-frame). */
+const page18: TargetConfig = {
+  id: 'page18',
   targetIndex: 14,
   title: 'Sharon, Save Me a Plate!',
-  image: '/magazine/p56.webp',
+  image: '/magazine/p18.webp',
   size: [1080, 1485],
-  content: [{ type: 'video', id: 'sharon', src: '/ar/p56/sharon.mp4', cover: true, at: [540, 742], width: 1080, loop: true }],
+  content: [{ type: 'video', id: 'sharon', src: '/ar/p18/sharon.mp4', cover: true, at: [540, 742], width: 1080, loop: true }],
 }
 
 /** p16, the bee species: the three printed bees take off and fly around the page, then land back. */
@@ -413,9 +413,9 @@ const backProbe: [number, number, number, number, number][] = [
 ]
 const frontProbe: [number, number, number, number, number][] = [
   [250, 60, 219, 174, 152], [270, 60, 219, 174, 153], [690, 140, 254, 254, 254], [810, 120, 254, 254, 254], [210, 260, 233, 161, 138],
-  [350, 260, 254, 254, 254], [610, 440, 205, 216, 133], [870, 260, 254, 254, 254], [90, 500, 158, 168, 78], [470, 640, 178, 87, 37],
+  [350, 260, 254, 254, 254], [610, 440, 205, 216, 133], [870, 260, 254, 254, 254], [70, 714, 126, 150, 83], [470, 640, 178, 87, 37],
   [770, 500, 183, 206, 122], [870, 740, 98, 160, 73], [70, 940, 250, 228, 98], [490, 860, 108, 132, 65], [570, 940, 75, 127, 62],
-  [970, 960, 114, 125, 48], [230, 1100, 68, 95, 41], [450, 1200, 58, 86, 37], [550, 1180, 60, 87, 38], [910, 1160, 158, 133, 41],
+  [970, 960, 114, 125, 48], [230, 1100, 68, 95, 41], [450, 1200, 58, 86, 37], [550, 1180, 60, 87, 38], [1000, 1068, 185, 157, 39],
   [250, 1280, 98, 184, 202], [470, 1340, 100, 189, 202], [790, 1340, 106, 166, 188], [870, 1340, 109, 169, 190],
 ]
 /** The whole cover's clip, centred and sized in one cover's pixels (each cover is 1080 px on the art's 1.078×). */
@@ -444,7 +444,7 @@ const backCover: TargetConfig = {
   id: 'back-cover',
   targetIndex: 17,
   title: 'Living Magazine (back)',
-  image: '/magazine/p74.webp',
+  image: '/magazine/p78.webp',
   size: [1080, 1485],
   content: [
     ...backContent,
@@ -454,5 +454,5 @@ const backCover: TargetConfig = {
 
 export const experience: ExperienceConfig = {
   mindFile: '/targets/targets.mind',
-  targets: [page13, page15, page13Closeup, page22, page24, page30, page34, page39, page40, page41, page52, page58, page61, page68, page56, page16, frontCover, backCover],
+  targets: [page13, page15, page13Closeup, page62, page64, page70, page42, page25, page26, page27, page54, page20, page29, page72, page18, page16, frontCover, backCover],
 }

@@ -149,7 +149,7 @@ export async function buildModel(c: ModelContent, { page, assets, view }: BuildC
     else console.warn(`[ar] ${c.asset} has no node "${n}" to hide`)
   }
 
-  // Soft studio reflections, toned down to sit with the camera picture (as for the p34 tub).
+  // Soft studio reflections, toned down to sit with the camera picture (as for the p42 tub).
   const env = view.environment()
   model.traverse((o) => {
     const mesh = o as THREE.Mesh

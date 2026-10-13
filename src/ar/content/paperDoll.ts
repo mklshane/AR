@@ -5,7 +5,7 @@ import type { PaperDollContent, PaperDollPiece } from '../types'
 import { type BuildContext, type ContentNode, Pulse, clamp01, disposeObject } from './ContentNode'
 
 /**
- * p39 "The Thrift-Up Doll": a paper doll whose clothes can be dragged onto her. The page is covered by
+ * p25 "The Thrift-Up Doll": a paper doll whose clothes can be dragged onto her. The page is covered by
  * the same art without the clothes, and each piece becomes a cut-out that starts on its printed spot.
  *
  * - Drop a piece on the doll (or just tap it) and it snaps on with a click.

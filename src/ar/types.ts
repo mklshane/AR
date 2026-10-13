@@ -100,13 +100,13 @@ export interface FilmContent extends Placed {
   title: string
   /** Extra caption detail before "Docufilm · m:ss" (e.g. who it's about). */
   subtitle?: string
-  /** Frame style: 'stamp' (p15: a perforated postage stamp like p14's), 'flourish' (p24's white baroque corners) or 'script' (p30's white script name). */
+  /** Frame style: 'stamp' (p15: a perforated postage stamp like p14's), 'flourish' (p64's white baroque corners) or 'script' (p70's white script name). */
   frame: 'stamp' | 'flourish' | 'script'
   /** The caption tab's colour, for frames that have one ('script'; default terracotta). */
   accent?: string
   /**
-   * 'script' frame ornament, taken from the page: 'swash' (p30: a clay mat with halftone grain and white
-   * script swashes curling round two corners) or 'leaves' (p61: a sage mat with leafy sprigs over two corners).
+   * 'script' frame ornament, taken from the page: 'swash' (p70: a clay mat with halftone grain and white
+   * script swashes curling round two corners) or 'leaves' (p29: a sage mat with leafy sprigs over two corners).
    */
   decor?: 'swash' | 'leaves'
   /** Overall frame width in target-image pixels. */
@@ -166,7 +166,7 @@ export interface PaperDollPiece {
   slot: 'outfit' | 'shoes'
 }
 
-/** p39's paper doll: drag (or tap) the printed clothes onto the doll (see content/paperDoll.ts). */
+/** p25's paper doll: drag (or tap) the printed clothes onto the doll (see content/paperDoll.ts). */
 export interface PaperDollContent {
   type: 'paper-doll'
   id: string
@@ -225,7 +225,7 @@ export interface BeesContent {
   bees: FlyingBee[]
 }
 
-/** p58's pan on the flame, with the printed stove knob made turnable (see content/pangat.ts). */
+/** p20's pan on the flame, with the printed stove knob made turnable (see content/pangat.ts). */
 export interface PangatContent extends Placed {
   type: 'pangat'
   /** The pan GLB, with its two food cards (Empty.004 lechon, Empty.006 paksiw). */
@@ -240,7 +240,7 @@ export interface PangatContent extends Placed {
   hintY?: number
 }
 
-/** p34's ice cream tub: tap to open it and find a fish instead (see content/tub.ts). */
+/** p42's ice cream tub: tap to open it and find a fish instead (see content/tub.ts). */
 export interface TubContent extends Placed {
   type: 'tub'
   /** The tub GLB (with nodes box_mesh, Empty.001 lid, Sphere.00x scoops, Medeka fish). */

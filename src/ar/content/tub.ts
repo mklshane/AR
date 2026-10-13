@@ -4,7 +4,7 @@ import type { TubContent } from '../types'
 import { type BuildContext, type ContentNode, Pulse, clamp01, disposeObject, easeOutBack, intro } from './ContentNode'
 
 /**
- * p34 "The Ice Cream is Gone": the Selecta tub lying lengthways on the printed (portrait) tray. Tap it and the lid comes off
+ * p42 "The Ice Cream is Gone": the Selecta tub lying lengthways on the printed (portrait) tray. Tap it and the lid comes off
  * and is set down beside it, the three scoops pop up and vanish, and a fish is left flopping inside.
  * Tap the fish to make it flop again; tap the tub to put everything back.
  *

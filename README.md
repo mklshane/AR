@@ -91,9 +91,9 @@ Recompile whenever a target image changes. Content-only edits don't need a recom
 
 ## Flip-through magazine
 
-The magazine icon next to "Open camera" on the landing page (or `/?magazine`) opens a page-turning reader built on [StPageFlip](https://github.com/Nodlik/StPageFlip) (`page-flip`, pinned at 2.0.7). It shows all 74 pages of the printed issue, cover to back cover. The library needs an even page count. Phones show one page at a time; wider screens show two-page spreads.
+The magazine icon next to "Open camera" on the landing page (or `/?magazine`) opens a page-turning reader built on [StPageFlip](https://github.com/Nodlik/StPageFlip) (`page-flip`, pinned at 2.0.7). It shows all 78 pages of the printed issue, cover to back cover. The library needs an even page count. Phones show one page at a time; wider screens show two-page spreads.
 
-- **Pages:** listed in `src/data/magazine.ts`, served from `public/magazine/` (`p01`–`p74.webp`, plus `thumbs/`). They're exported from the print PDF, trimmed to 8×11in, by `scripts/export-magazine.sh` (needs `brew install poppler webp`). The script also writes the landing page's cover art (`public/cover-art-*.webp`). Keep the PDF in `design/living-magazine.pdf`. It's gitignored and must stay out of `public/`, or the 136MB file ships with the site. To update the issue, replace the PDF, rerun the script and change the page count in `magazine.ts`.
+- **Pages:** listed in `src/data/magazine.ts`, served from `public/magazine/` (`p01`–`p78.webp`, plus `thumbs/`). They're exported from the print PDF, trimmed to 8×11in, by `scripts/export-magazine.sh`, which crops to the PDF's TrimBox, so it works with or without bleed (needs `brew install poppler webp`). The script also writes the landing page's cover art (`public/cover-art-*.webp`). Keep the PDF in `design/living-magazine.pdf`. It's gitignored and must stay out of `public/`, or the ~138MB file ships with the site. To update the issue, replace the PDF, rerun the script and change the page count in `magazine.ts`.
 - **Drag patch:** `Magazine.tsx` patches page-flip's `stopMove` so a single-page drag only has to cover about 40% of the page to turn it. Without the patch, the drag has to reach the left edge of the screen. Check the patch if you upgrade `page-flip`.
 
 ## Video on a poster

@@ -141,7 +141,7 @@ const stamp: FrameStyle = {
   },
 }
 
-// ---- p24 "flourish": the page's own white baroque corners around the film, script caption below ----
+// ---- p64 "flourish": the page's own white baroque corners around the film, script caption below ----
 
 // The film is 1320×720 (the source's own black matte cropped off) with softly rounded corners.
 const FL_WIN: Rect = { x: 70, y: 70, w: 1060, h: 578 }
@@ -164,7 +164,7 @@ const flourish: FrameStyle = {
   },
   async draw(ctx, c, duration, assets) {
     const win = FL_WIN
-    const [tl, br] = await Promise.all([assets.image('/ar/p24/flourish-tl.webp'), assets.image('/ar/p24/flourish-br.webp')])
+    const [tl, br] = await Promise.all([assets.image('/ar/p64/flourish-tl.webp'), assets.image('/ar/p64/flourish-br.webp')])
     await loadFonts('96px "Miss Fajardose"', '600 20px Montserrat')
 
     // Caption tab in the page's sage, tucked under the bottom-left (so it reads over the portrait too).
@@ -223,7 +223,7 @@ const flourish: FrameStyle = {
   },
 }
 
-// ---- p30 "script": a plain rounded film with a white keyline, the page's white script name on a terracotta tab ----
+// ---- p70 "script": a plain rounded film with a white keyline, the page's white script name on a terracotta tab ----
 
 const SC_WIN: Rect = { x: 70, y: 70, w: 1060, h: 596 }
 const SC_RADIUS = 30
