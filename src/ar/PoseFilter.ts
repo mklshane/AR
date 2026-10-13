@@ -206,6 +206,7 @@ export class PoseFilter {
       channels.forEach((c) => c.latch())
       cLat = cDepth = cRot = o.maxCutoff
     }
+    if ((globalThis as { __pfShared?: boolean }).__pfShared) cLat = cDepth = cRot = Math.max(cLat, cDepth, cRot)
 
     this.pos.addScaledVector(dev.lateral, alpha(dt, cLat)).addScaledVector(view, dev.along * alpha(dt, cDepth))
     this.quat.slerp(this.rawQuat, alpha(dt, cRot))

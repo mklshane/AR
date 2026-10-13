@@ -38,9 +38,25 @@ const basketTimeline: TimelineContent = {
   },
 }
 
+/**
+ * The table of contents (pp. 4–5) shows small pictures of other pages, e.g. p15's beekeeper and p72's Deep
+ * Ecology, which the tracker would otherwise take for those pages and play their AR. So these spread pages are
+ * targets too, first in the .mind file (detection tries targets in order and takes the first match), with
+ * nothing on them: while the contents page is in view, it holds the tracker.
+ */
+const contents = (n: number): TargetConfig => ({
+  id: `contents-${n}`,
+  targetIndex: n - 4,
+  title: 'Table of contents',
+  image: `/magazine/p0${n}.webp`,
+  size: [1080, 1485],
+  content: [],
+  quiet: true,
+})
+
 const page13: TargetConfig = {
   id: 'page13',
-  targetIndex: 0,
+  targetIndex: 2,
   group: 'page13',
   title: "Lola's Beauty Drawer Was The Kitchen",
   image: '/magazine/p13.webp',
@@ -54,7 +70,7 @@ const page13: TargetConfig = {
  */
 const page13Closeup: TargetConfig = {
   id: 'page13-closeup',
-  targetIndex: 2,
+  targetIndex: 4,
   group: 'page13',
   title: "Lola's Beauty Drawer Was The Kitchen (close-up)",
   image: '/ar/p13/closeup.webp',
@@ -65,7 +81,7 @@ const page13Closeup: TargetConfig = {
 /** Joseph Del Rio's beekeeping story, keyed to the hexagonal beekeeper photograph. */
 const page15: TargetConfig = {
   id: 'page15',
-  targetIndex: 1,
+  targetIndex: 3,
   title: 'Inside the Hive',
   image: '/magazine/p15.webp',
   size: [1080, 1485],
@@ -93,7 +109,7 @@ const page15: TargetConfig = {
  */
 const page62: TargetConfig = {
   id: 'page62',
-  targetIndex: 3,
+  targetIndex: 5,
   title: 'Ili leaves',
   image: '/magazine/p62.webp',
   size: [1080, 1485],
@@ -103,7 +119,7 @@ const page62: TargetConfig = {
 /** p64 "Teacher Maui": the Ili Likhaan docufilm over the portrait, framed with the page's own flourishes. */
 const page64: TargetConfig = {
   id: 'page64',
-  targetIndex: 4,
+  targetIndex: 6,
   title: 'Teacher Maui',
   image: '/magazine/p64.webp',
   size: [1080, 1485],
@@ -130,7 +146,7 @@ const page64: TargetConfig = {
 /** p70 "Yano": his docufilm pops up over the portrait, captioned in the page's white script. */
 const page70: TargetConfig = {
   id: 'page70',
-  targetIndex: 5,
+  targetIndex: 7,
   title: 'Yano',
   image: '/magazine/p70.webp',
   size: [1080, 1485],
@@ -157,7 +173,7 @@ const page70: TargetConfig = {
 /** p42 "The Ice Cream is Gone": the Selecta tub on the printed tray; tap it to find the fish. */
 const page42: TargetConfig = {
   id: 'page42',
-  targetIndex: 6,
+  targetIndex: 8,
   title: 'The Ice Cream is Gone',
   image: '/magazine/p42.webp',
   size: [1080, 1485],
@@ -169,7 +185,7 @@ const page42: TargetConfig = {
 /** p25 "The Thrift-Up Doll": drag the printed clothes onto the paper doll. */
 const page25: TargetConfig = {
   id: 'page25',
-  targetIndex: 7,
+  targetIndex: 9,
   title: 'The Thrift-Up Doll',
   image: '/magazine/p25.webp',
   size: [1080, 1485],
@@ -197,7 +213,7 @@ const page25: TargetConfig = {
 /** p26 "MAGWAI wants your beach bag…": the reef-safe sunscreen rising out of a watercolour reef, mid-page. */
 const page26: TargetConfig = {
   id: 'page26',
-  targetIndex: 8,
+  targetIndex: 10,
   title: 'MAGWAI Sunscreen',
   image: '/magazine/p26.webp',
   size: [1080, 1485],
@@ -224,7 +240,7 @@ const page26: TargetConfig = {
 /** p27 "Then MAGWAI looked at the bathroom": the shampoo bar rising out of the same reef, mid-page. */
 const page27: TargetConfig = {
   id: 'page27',
-  targetIndex: 9,
+  targetIndex: 11,
   title: 'MAGWAI Shampoo Bar',
   image: '/magazine/p27.webp',
   size: [1080, 1485],
@@ -249,7 +265,7 @@ const page27: TargetConfig = {
 /** p54 "It's Four O'Clock!": the clock's people and things come alive over the print (scripts/page-video.py --alpha). */
 const page54: TargetConfig = {
   id: 'page54',
-  targetIndex: 10,
+  targetIndex: 12,
   title: "It's Four O'Clock!",
   image: '/magazine/p54.webp',
   size: [1080, 1485],
@@ -259,7 +275,7 @@ const page54: TargetConfig = {
 /** p20 "Pangat: Ang Pagbabalik ng Leftovers": turn the printed knob to heat the pan until the leftover lechon comes back as paksiw. */
 const page20: TargetConfig = {
   id: 'page20',
-  targetIndex: 11,
+  targetIndex: 13,
   title: 'Pangat',
   image: '/magazine/p20.webp',
   size: [1080, 1485],
@@ -282,7 +298,7 @@ const page20: TargetConfig = {
 /** p29 "Kapusod": Howie Severino's docufilm pops up over his printed portrait, captioned on the page's leaf green. */
 const page29: TargetConfig = {
   id: 'page29',
-  targetIndex: 12,
+  targetIndex: 14,
   title: 'Kapusod',
   image: '/magazine/p29.webp',
   size: [1080, 1485],
@@ -310,7 +326,7 @@ const page29: TargetConfig = {
 /** p72 "Deep Ecology": the painting grows over the print, black background keyed out (scripts/alpha-clip.py --key black --soft 180, so its glow fades out without a dark halo). */
 const page72: TargetConfig = {
   id: 'page72',
-  targetIndex: 13,
+  targetIndex: 15,
   title: 'Deep Ecology',
   image: '/magazine/p72.webp',
   size: [1080, 1485],
@@ -330,7 +346,7 @@ const page72: TargetConfig = {
 /** p18 "Sharon, Save Me a Plate!": the fiesta table comes alive inside the page's own border (scripts/page-video.py --under-frame). */
 const page18: TargetConfig = {
   id: 'page18',
-  targetIndex: 14,
+  targetIndex: 16,
   title: 'Sharon, Save Me a Plate!',
   image: '/magazine/p18.webp',
   size: [1080, 1485],
@@ -340,7 +356,7 @@ const page18: TargetConfig = {
 /** p16, the bee species: the three printed bees take off and fly around the page, then land back. */
 const page16: TargetConfig = {
   id: 'page16',
-  targetIndex: 15,
+  targetIndex: 17,
   title: 'Laywan, Lukot, Pukyutan',
   image: '/magazine/p16.webp',
   size: [1080, 1485],
@@ -430,7 +446,7 @@ const beside = (id: string, offset: Px, probe: typeof backProbe, content: Conten
 
 const frontCover: TargetConfig = {
   id: 'front-cover',
-  targetIndex: 16,
+  targetIndex: 18,
   title: 'Living Magazine',
   image: '/magazine/p01.webp',
   size: [1080, 1485],
@@ -442,7 +458,7 @@ const frontCover: TargetConfig = {
 
 const backCover: TargetConfig = {
   id: 'back-cover',
-  targetIndex: 17,
+  targetIndex: 19,
   title: 'Living Magazine (back)',
   image: '/magazine/p78.webp',
   size: [1080, 1485],
@@ -454,5 +470,5 @@ const backCover: TargetConfig = {
 
 export const experience: ExperienceConfig = {
   mindFile: '/targets/targets.mind',
-  targets: [page13, page15, page13Closeup, page62, page64, page70, page42, page25, page26, page27, page54, page20, page29, page72, page18, page16, frontCover, backCover],
+  targets: [contents(4), contents(5), page13, page15, page13Closeup, page62, page64, page70, page42, page25, page26, page27, page54, page20, page29, page72, page18, page16, frontCover, backCover],
 }

@@ -324,6 +324,11 @@ export interface TargetConfig {
    * steadier (its far end magnifies tracking jitter), at the cost of a little lag when the page moves.
    */
   poseFilter?: { minCutoff?: number; beta?: number }
+  /**
+   * Tracked only to keep other targets from matching pictures of them printed on it (e.g. the contents page's
+   * thumbnails): no content, and it isn't announced as a found page.
+   */
+  quiet?: boolean
 }
 
 export interface ExperienceConfig {

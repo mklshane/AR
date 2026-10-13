@@ -99,7 +99,7 @@ export class TargetManager {
   /** Called from MindAR's onUpdate with the target's world matrix (or null when lost). */
   update(targetIndex: number, worldMatrix: number[] | null, now: number) {
     const a = this.anchors.get(targetIndex)
-    if (!a) return
+    if (!a || a.config.quiet) return
     if (worldMatrix) {
       a.rawPose.fromArray(worldMatrix).multiply(a.postMatrix)
       if (!a.visible) a.filter?.reset()
