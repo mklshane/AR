@@ -1,4 +1,4 @@
-import type { ContentItem, ExperienceConfig, FlyingBee, Px, TargetConfig, TimelineContent } from '../ar/types'
+import type { ContentItem, ExperienceConfig, Px, TargetConfig, TimelineContent } from '../ar/types'
 
 /**
  * Livin’ Magazine pages that come alive. Each `image` is the page as exported by
@@ -375,50 +375,25 @@ const page16: TargetConfig = {
 }
 
 /**
- * The covers: the wraparound art comes alive (scripts/cover-video.py; this clip has the cover's bees painted
- * out), each cover playing its own half, lined up with the print, whose text and QR code stay on top. The
- * bees are cut-outs of the printed ones, and fly off the cover.
+ * The covers: the wraparound animation exactly as sent (ANIMATED COVER.mp4, only re-encoded for the web), each
+ * cover playing its own part of it, lined up with the print. Crops (fractions of the clip) and the whole-cover
+ * placement come from registering each printed cover to the animation's first frame (scripts/cover-video.py's
+ * register): page px → clip px is ×0.9278 then +(1028.4, −0.1) for the front, +(8.6, 0.1) for the back.
  */
-const coverClip = '/ar/cover/cover-ar.mp4'
-const coverBee = (name: string, at: Px, width: number, hinge: [number, number], orbit: Px, radius: [number, number], extra: Partial<FlyingBee> = {}): FlyingBee => ({
-  body: `/ar/cover/bee-${name}.webp`,
-  wings: `/ar/cover/bee-${name}-wings.webp`,
-  at,
-  width,
-  hinge,
-  orbit,
-  radius,
-  ...extra,
-})
-
+const coverClip = '/ar/cover/cover-anim.mp4'
 const frontContent: ContentItem[] = [
-  { type: 'video', id: 'cover-front', src: coverClip, cover: true, crop: [0.5, 0, 0.5, 1], at: [540, 742], width: 1080, loop: true },
-  {
-    type: 'bees',
-    id: 'cover-front-bees',
-    bees: [coverBee('front-flower', [533.5, 519.5], 119, [0.336, 0.341], [560, 640], [330, 230], { delay: 0.8 })],
-  },
+  { type: 'video', id: 'cover-front', src: coverClip, cover: true, crop: [0.50214, 0, 0.48926, 0.98696], at: [540, 742.5], width: 1080, loop: true },
 ]
 const backContent: ContentItem[] = [
-  { type: 'video', id: 'cover-back', src: coverClip, cover: true, crop: [0, 0, 0.5, 1], at: [540, 742], width: 1080, loop: true },
-  {
-    type: 'bees',
-    id: 'cover-back-bees',
-    bees: [
-      coverBee('back-sky', [705, 287], 64, [0.656, 0.432], [620, 380], [300, 200], { facesRight: true, delay: 0.8, pitch: 1.2 }),
-      coverBee('back-volcano', [1009, 586.5], 106, [0.642, 0.195], [780, 560], [300, 200], { facesRight: true, delay: 1.9, pitch: 0.9 }),
-    ],
-  },
+  { type: 'video', id: 'cover-back', src: coverClip, cover: true, crop: [0.00419, 0.00004, 0.48911, 0.98663], at: [540, 742.5], width: 1080, loop: true },
 ]
 
 /**
  * With the whole wraparound cover in view (the flipbook's full cover, or the magazine laid open), the tracker
- * still follows just one cover, so each cover also carries the whole cover's clip (scripts/cover-video.py
- * --whole, lined up with the flipbook's picture of it) and the other cover's bees, shown over its own half once
- * the camera sees the other cover beside it. The covers sit 1098.2 px apart (spine included), measured on the
- * wraparound art. Probes: flat spots on the other cover and their printed colour (a 4×6 grid over each cover).
+ * still follows just one cover, so each cover also shows the whole clip, over its own half and the other cover,
+ * once the camera sees the other cover beside it. The covers sit 1098.2 px apart (spine included). Probes:
+ * flat spots on the other cover and their printed colour (a 4×6 grid over each cover).
  */
-const wholeClip = '/ar/cover/cover-whole.mp4'
 const COVER_STEP = 1098.2
 const backProbe: [number, number, number, number, number][] = [
   [230, 220, 194, 123, 50], [270, 200, 190, 118, 46], [790, 160, 109, 134, 75], [850, 160, 122, 138, 71], [110, 480, 174, 180, 84],
@@ -434,14 +409,8 @@ const frontProbe: [number, number, number, number, number][] = [
   [970, 960, 114, 125, 48], [230, 1100, 68, 95, 41], [450, 1200, 58, 86, 37], [550, 1180, 60, 87, 38], [1000, 1068, 185, 157, 39],
   [250, 1280, 98, 184, 202], [470, 1340, 100, 189, 202], [790, 1340, 106, 166, 188], [870, 1340, 109, 169, 190],
 ]
-/** The whole cover's clip, centred and sized in one cover's pixels (each cover is 1080 px on the art's 1.078×). */
-const wholeCover = (id: string, at: Px): ContentItem => ({ type: 'video', id, src: wholeClip, cover: true, at, width: 2225.9, loop: true })
-/** The other cover's bees, moved into this cover's pixels. */
-const besideBees = (id: string, from: ContentItem, [dx, dy]: Px): ContentItem => {
-  if (from.type !== 'bees') throw new Error(`${from.id} isn't bees`)
-  const move = ([x, y]: Px): Px => [x + dx, y + dy]
-  return { ...from, id, bees: from.bees.map((b) => ({ ...b, at: move(b.at), orbit: move(b.orbit) })) }
-}
+/** The whole clip, centred and sized in one cover's pixels (the clip is 2048 px wide at 0.9278 clip px per page px). */
+const wholeCover = (id: string, at: Px): ContentItem => ({ type: 'video', id, src: coverClip, cover: true, at, width: 2207.6, loop: true })
 const beside = (id: string, offset: Px, probe: typeof backProbe, content: ContentItem[]): ContentItem => ({ type: 'beside', id, offset, probe, content })
 
 const frontCover: TargetConfig = {
@@ -453,7 +422,7 @@ const frontCover: TargetConfig = {
   hideStale: true,
   content: [
     ...frontContent,
-    beside('whole-from-front', [-COVER_STEP, 0], backProbe, [wholeCover('whole-front', [-1.6, 742.8]), besideBees('whole-front-bees', backContent[1], [-COVER_STEP, 0])]),
+    beside('whole-from-front', [-COVER_STEP, 0], backProbe, [wholeCover('whole-front', [-4.7, 752.4])]),
   ],
 }
 
@@ -466,7 +435,7 @@ const backCover: TargetConfig = {
   hideStale: true,
   content: [
     ...backContent,
-    beside('whole-from-back', [COVER_STEP, 0], frontProbe, [wholeCover('whole-back', [1096.8, 742.8]), besideBees('whole-back-bees', frontContent[1], [COVER_STEP, 0])]),
+    beside('whole-from-back', [COVER_STEP, 0], frontProbe, [wholeCover('whole-back', [1094.8, 752.5])]),
   ],
 }
 
